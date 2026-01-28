@@ -12,7 +12,7 @@ import {
 } from "@react-three/drei";
 import * as THREE from "three";
 
-// --- 1. THE ROBOT MODEL (Unchanged) ---
+// --- 1. THE ROBOT MODEL ---
 const Model = () => {
   const { scene } = useGLTF("/assets/core.glb"); 
   const ref = useRef<THREE.Group>(null);
@@ -52,16 +52,14 @@ const Model = () => {
   );
 };
 
-// --- 2. NEW COMPONENT: ROTATING STARS ---
+// --- 2. ROTATING STARS ---
 const RotatingStars = () => {
   const ref = useRef<THREE.Group>(null);
 
   useFrame((state, delta) => {
     if (ref.current) {
-      // Rotate on Y axis (Spinning horizontally)
-      ref.current.rotation.y -= delta * 0.4; 
-      // Slight X rotation for dynamic angle
-      ref.current.rotation.x += delta * 0.2; 
+      ref.current.rotation.y -= delta * 0.05; // Spin speed
+      ref.current.rotation.x += delta * 0.01; 
     }
   });
 
@@ -84,18 +82,17 @@ const HolographicScene = () => {
         <Environment preset="city" />
 
         <Suspense fallback={null}>
-          <group position={[-3.5, -1.5, 0]}> 
-             <Float speed={2} rotationIntensity={2.5} floatIntensity={1.5}>
+          {/* FIX: Changed x from -3.5 (Left) to 3.0 (Right) */}
+          <group position={[3.0, -1.5, 0]}> 
+             <Float speed={2} rotationIntensity={0.5} floatIntensity={1.5}>
                 <Model />
              </Float>
           </group>
         </Suspense>
 
-        {/* REPLACED STATIC STARS WITH ROTATING ONES */}
         <RotatingStars />
         
-        
-        <ContactShadows position={[8.0, -4.5, 0]} opacity={0.6} scale={10} blur={3} far={10} />
+        <ContactShadows position={[3.0, -4.5, 0]} opacity={0.6} scale={10} blur={3} far={10} />
 
       </Canvas>
     </div>
