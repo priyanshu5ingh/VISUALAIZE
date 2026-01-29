@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="400" viewBox="0 0 1000 400">
+  <style>
+    .title { font: 600 20px 'Segoe UI', Roboto, sans-serif; fill: #0f172a }
+    .box { fill: #0ea5e9; stroke: #0369a1; stroke-width:2; rx:8 }
+    .box2 { fill: #60a5fa; stroke:#1e3a8a; stroke-width:2; rx:8 }
+    .text { font: 14px 'Segoe UI', Roboto, sans-serif; fill: #fff }
+    .muted { font: 12px 'Segoe UI', Roboto, sans-serif; fill: #94a3b8 }
+    .arrow { stroke:#0f172a; stroke-width:2; marker-end: url(#arrowhead) }
+  </style>
+  <defs>
+    <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#0f172a" />
+    </marker>
+  </defs>
+
+  <text x="20" y="28" class="title">VisualAIze Pro — System Architecture</text>
+
+  <!-- Frontend -->
+  <rect x="30" y="60" width="260" height="120" class="box" />
+  <text x="50" y="90" class="text">Frontend</text>
+  <text x="50" y="110" class="muted">Next.js 16 • React 19 • TypeScript</text>
+  <text x="50" y="130" class="muted">ReactFlow • R3F • Framer Motion</text>
+
+  <!-- Backend -->
+  <rect x="370" y="60" width="260" height="120" class="box2" />
+  <text x="390" y="90" class="text">Backend</text>
+  <text x="390" y="110" class="muted">FastAPI • Uvicorn • Python</text>
+  <text x="390" y="130" class="muted">Gemini 2.5 Integration</text>
+
+  <!-- Cloud / Models -->
+  <rect x="710" y="60" width="260" height="120" class="box" />
+  <text x="730" y="90" class="text">AI / Cloud</text>
+  <text x="730" y="110" class="muted">Google Gemini 2.5</text>
+  <text x="730" y="130" class="muted">JSON → Nodes/Edges</text>
+
+  <!-- arrows -->
+  <line x1="290" y1="120" x2="370" y2="120" class="arrow" />
+  <line x1="630" y1="120" x2="710" y2="120" class="arrow" />
+
+  <text x="320" y="145" class="muted">REST / WebSocket</text>
+  <text x="560" y="145" class="muted">API Calls</text>
+
+  <!-- Notes -->
+  <text x="30" y="220" class="muted">Client renders diagrams with ReactFlow, positions computed by Dagre; 3D scene uses Three.js (R3F).</text>
+  <text x="30" y="240" class="muted">Backend validates prompts and calls Gemini, then returns graph JSON.</text>
+</svg>

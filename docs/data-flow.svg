@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="300" viewBox="0 0 900 300">
+  <style>
+    .title { font: 600 18px 'Segoe UI', Roboto, sans-serif; fill: #0f172a }
+    .step { fill:#111827; stroke:#1e293b; rx:6 }
+    .text { font: 13px 'Segoe UI', Roboto, sans-serif; fill:#fff }
+    .muted { font: 12px 'Segoe UI', Roboto, sans-serif; fill:#374151 }
+    .arrow { stroke:#0f172a; stroke-width:2; marker-end:url(#a) }
+  </style>
+  <defs>
+    <marker id="a" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#0f172a" />
+    </marker>
+  </defs>
+
+  <text x="20" y="28" class="title">Data Flow — Prompt to Diagram</text>
+
+  <!-- Steps -->
+  <rect x="20" y="60" width="200" height="80" class="step"/>
+  <text x="40" y="90" class="text">1. User Enter Prompt</text>
+  <text x="40" y="110" class="muted">GraphEditor Input</text>
+
+  <rect x="340" y="60" width="200" height="80" class="step"/>
+  <text x="360" y="90" class="text">2. Backend Processing</text>
+  <text x="360" y="110" class="muted">Validate → Call Gemini</text>
+
+  <rect x="660" y="60" width="200" height="80" class="step"/>
+  <text x="680" y="90" class="text">3. Gemini → JSON</text>
+  <text x="680" y="110" class="muted">Nodes & Edges</text>
+
+  <line x1="220" y1="100" x2="340" y2="100" class="arrow"/>
+  <line x1="540" y1="100" x2="660" y2="100" class="arrow"/>
+
+  <rect x="340" y="170" width="520" height="80" class="step"/>
+  <text x="360" y="200" class="text">4. Backend returns Graph JSON</text>
+  <text x="360" y="220" class="muted">Frontend runs Dagre → ReactFlow render</text>
+
+  <line x1="760" y1="140" x2="760" y2="170" class="arrow"/>
+
+  <text x="20" y="270" class="muted">Note: Optional steps include caching, template selection, and export to PNG (html-to-image).</text>
+</svg>

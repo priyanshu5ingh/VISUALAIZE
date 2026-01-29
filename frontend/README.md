@@ -1,36 +1,58 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+This directory contains the frontend application for VisualAIze Pro — a Next.js + React + TypeScript app that powers the interactive visualization studio.
 
-## Getting Started
+For full project documentation (architecture, backend setup, API examples), see the root README: [README.md](../README.md).
 
-First, run the development server:
+## Quick Start (Frontend)
+
+Requirements:
+
+- Node.js 18+ and npm (or yarn / pnpm)
+
+Install dependencies and run the dev server:
 
 ```bash
+cd frontend
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open http://localhost:3000 in your browser. The app uses the Next.js `app/` router; edit `app/page.tsx` to change the landing page.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Helpful Scripts
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- `npm run dev` — Start Next.js dev server
+- `npm run build` — Build for production
+- `npm start` — Start the production server (after `build`)
+- `npm run lint` — Run ESLint
+
+## Environment
+
+Create a `.env.local` in the `frontend/` folder for runtime overrides. At minimum you can set the backend API URL:
+
+```env
+NEXT_PUBLIC_API_URL=http://localhost:8000
+```
+
+The backend uses the Google Generative AI (Gemini) API key; keep keys in the backend and never commit them to source control.
+
+## What to edit
+
+- `app/page.tsx` — Landing + entry into the Graph Editor
+- `src/components/GraphEditor.tsx` — Main editor UI and prompt flow
+- `src/components/HolographicScene.tsx` — 3D background / model renderer
+- `src/utils/layout.ts` — Dagre layout helper for node positioning
+
+## Troubleshooting
+
+- If the 3D model doesn't load, ensure `public/assets/core.glb` exists.
+- If the frontend cannot call the backend, confirm `NEXT_PUBLIC_API_URL` is set and backend is running on that URL.
 
 ## Learn More
 
-To learn more about Next.js, take a look at the following resources:
+- Next.js docs: https://nextjs.org/docs
+- ReactFlow: https://reactflow.dev
+- React Three Fiber: https://docs.pmnd.rs/react-three-fiber/getting-started/introduction
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+---
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+If you'd like, I can also merge this content into the root README or expand the frontend README with architecture diagrams and examples. 

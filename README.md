@@ -119,6 +119,16 @@ VisualAIze/
 └── backend/                           # Python Backend
     ├── test_key.py                   # Gemini API Key Validation
     └── venv/                         # Virtual Environment
+
+  ---
+
+  ## 🖼️ Diagrams
+
+  Visual diagrams for the architecture and data flow are available in the `docs/` folder.
+
+  ![Architecture Diagram](docs/architecture.svg)
+
+  ![Data Flow](docs/data-flow.svg)
 ```
 
 ---
@@ -152,6 +162,33 @@ npm run dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000) in your browser.
+
+**Frontend Quick Start (expanded)**
+
+This project contains a focused frontend guide in `frontend/README.md`. Key steps are:
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+Helpful scripts:
+
+- `npm run dev` — Start Next.js dev server
+- `npm run build` — Build for production
+- `npm start` — Start the production server (after `build`)
+- `npm run lint` — Run ESLint
+
+Environment:
+
+Create a `.env.local` file in the `frontend/` folder for runtime overrides. At minimum:
+
+```env
+NEXT_PUBLIC_API_URL=http://localhost:8000
+```
+
+If you prefer a dedicated reference, see: [frontend/README.md](frontend/README.md)
 
 #### 3. **Backend Setup**
 
