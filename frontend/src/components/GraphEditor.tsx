@@ -170,7 +170,7 @@ function EditorContent({ onBack }: EditorProps) {
     setIsSidebarOpen(false);
 
     try {
-      const res = await fetch('http://127.0.0.1:8000/generate', {
+      const res = await fetch('https://visualaize-backend.onrender.com/generate', {
         method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt: text }),
       });
       if (!res.ok) throw new Error("Backend Error");
@@ -220,7 +220,7 @@ function EditorContent({ onBack }: EditorProps) {
     setChatHistory(prev => [...prev, { role: 'user', text: userMsg }]);
     setIsChatting(true);
     try {
-        const res = await fetch('http://127.0.0.1:8000/chat', {
+        const res = await fetch('https://visualaize-backend.onrender.com/chat', {
             method: 'POST', headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ message: userMsg, context: `Title: ${graphData.title}. Explanation: ${graphData.explanation}` }),
         });
