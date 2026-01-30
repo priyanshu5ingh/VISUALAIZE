@@ -1,22 +1,29 @@
 # backend/main.py
+import os
 import json
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from typing import List, Optional
 from fastapi.middleware.cors import CORSMiddleware
 import google.generativeai as genai
-from google.api_core import exceptions
+from dotenv import load_dotenv
+
+# Load Environment Variables
+load_dotenv()
 
 # --- CONFIGURATION ---
-MY_GOOGLE_KEY = "AIzaSyDbexmjvKxLPLUxOneVc5JkJ_ag0BK0zRY" 
-genai.configure(api_key=MY_GOOGLE_KEY)
+GENAI_KEY = os.getenv("GEMINI_API_KEY")
+if not GENAI_KEY:
+    raise ValueError("GEMINI_API_KEY not found in .env file")
 
-MODEL_FALLBACK_LIST = [
-    'gemini-2.0-flash', 'gemini-2.5-flash', 'gemini-pro', 'gemini-1.5-flash'
-]
+genai.configure(api_key=GENAI_KEY)
+
+# Use Gemini 2.0 Flash for speed and JSON structure
+MODEL_NAME = 'gemini-2.0-flash'
 
 app = FastAPI()
 
+# Enable CORS for Vercel
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -25,113 +32,108 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# --- MODELS ---
-class Node(BaseModel):
-    id: str
-    label: str
-    type: str = "default" 
-
-class Edge(BaseModel):
-    source: str
-    target: str
-    label: Optional[str] = ""
-
-class GraphResponse(BaseModel):
-    nodes: List[Node]
-    edges: List[Edge]
-    title: str               
-    summary: str             
-    explanation: str         
-    example_input: str       
-    execution_trace: str     
-    code_snippet: str        
-    code_explanation: str    
-
-class PromptRequest(BaseModel):
+# --- DATA MODELS (Matching your ReactFlow Frontend) ---
+class GraphRequest(BaseModel):
     prompt: str
+
+class ChatRequest(BaseModel):
+    message: str
+    context: str
 
 class CodeRequest(BaseModel):
     prompt: str
     language: str
 
-# NEW: Chat Request Model
-class ChatRequest(BaseModel):
-    message: str
-    context: str  # The summary/explanation of the current graph
+# --- AI PROMPTS ---
+SYSTEM_PROMPT = """
+You are a System Architecture Visualization AI.
+You do NOT generate images. You generate STRUCTURAL JSON data for a ReactFlow graph editor.
 
-# --- ENDPOINTS ---
+Your goal is to visualize complex systems (Neural Networks, DFAs, System Flows) by breaking them into NODES and EDGES.
 
-@app.post("/generate", response_model=GraphResponse)
-async def generate_graph(request: PromptRequest):
-    print(f"Generating Graph for: {request.prompt}")
-    
-    system_prompt = """
-    You are an Expert Computer Science Professor. Output JSON containing a graph, lesson, and Python code.
-    STRICT JSON STRUCTURE:
-    {
-      "nodes": [{"id": "q0", "label": "Start", "type": "default"}],
-      "edges": [{"source": "q0", "target": "q1", "label": "0"}],
-      "title": "Short Title",
-      "summary": "1-sentence summary.",
-      "explanation": "Educational paragraph.",
-      "example_input": "Example input",
-      "execution_trace": "Step-by-step trace",
-      "code_snippet": "Python code implementation.",
-      "code_explanation": "Brief description of the code."
-    }
-    RULES: Output ONLY valid JSON. Escape newlines in code_snippet.
-    """
-    return await call_gemini(system_prompt, request.prompt)
+You must return a SINGLE valid JSON object with this exact schema:
+{
+    "title": "Short title of the system",
+    "summary": "1-sentence executive summary",
+    "explanation": "3-4 bullet points explaining the logic",
+    "example_input": "A sample input for the system",
+    "execution_trace": "Step-by-step trace of how the system processes the input",
+    "code_snippet": "Python (or relevant) code implementation of the system",
+    "nodes": [
+        {"id": "1", "label": "Input Layer"},
+        {"id": "2", "label": "Hidden Layer"}
+    ],
+    "edges": [
+        {"source": "1", "target": "2", "label": "Weights"}
+    ]
+}
+
+RULES:
+1. Node IDs must be strings ("1", "2").
+2. 'source' and 'target' in edges must match Node IDs.
+3. Keep labels concise.
+4. Return ONLY JSON. No Markdown formatting.
+"""
+
+# --- ROUTES ---
+
+@app.get("/")
+def health_check():
+    return {"status": "Online", "model": MODEL_NAME}
+
+@app.post("/generate")
+async def generate_graph(request: GraphRequest):
+    try:
+        model = genai.GenerativeModel(MODEL_NAME)
+        
+        # We explicitly ask for JSON mode
+        response = model.generate_content(
+            f"{SYSTEM_PROMPT}\n\nUSER PROMPT: {request.prompt}",
+            generation_config={"response_mime_type": "application/json"}
+        )
+        
+        # Clean up response if Gemini adds markdown code blocks (rare in JSON mode but possible)
+        text_response = response.text.replace("```json", "").replace("```", "").strip()
+        
+        return json.loads(text_response)
+
+    except Exception as e:
+        print(f"Error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/chat")
+async def chat_with_ai(request: ChatRequest):
+    try:
+        model = genai.GenerativeModel(MODEL_NAME)
+        prompt = f"""
+        Context: {request.context}
+        
+        User Question: {request.message}
+        
+        Answer as a helpful AI Tutor explaining the system architecture. Keep it brief (2-3 sentences).
+        """
+        response = model.generate_content(prompt)
+        return {"reply": response.text}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/regenerate_code")
 async def regenerate_code(request: CodeRequest):
-    print(f"Rewriting code in {request.language}...")
-    system_prompt = f"""
-    You are an Expert Coder. 
-    1. Implement the logic described in the user prompt using {request.language}.
-    2. Output ONLY a JSON object with two fields: "code_snippet" and "code_explanation".
-    STRICT JSON STRUCTURE:
-    {{
-      "code_snippet": "The executable {request.language} code. Use \\n for newlines.",
-      "code_explanation": "A short sentence explaining this {request.language} implementation."
-    }}
-    """
-    return await call_gemini(system_prompt, f"Logic to implement: {request.prompt}")
-
-# NEW: Chat Endpoint
-@app.post("/chat")
-async def chat_with_ai(request: ChatRequest):
-    print(f"Chat Message: {request.message}")
-    
-    system_prompt = f"""
-    You are a friendly and helpful AI Tutor.
-    The student is looking at a graph visualization with this context: "{request.context}".
-    
-    Answer their specific question clearly and concisely.
-    If they ask for clarification, explain it like they are 5 years old.
-    Keep the response short (under 3 sentences) so it fits in a chat bubble.
-    """
-    
-    # We use a simple helper to get text response, not JSON
-    for model_name in MODEL_FALLBACK_LIST:
-        try:
-            model = genai.GenerativeModel(model_name)
-            response = model.generate_content(f"{system_prompt}\nSTUDENT QUESTION: {request.message}")
-            return {"reply": response.text}
-        except Exception:
-            continue
-    raise HTTPException(status_code=429, detail="Server Busy")
-
-# --- HELPER FUNCTION ---
-async def call_gemini(system_prompt, user_prompt):
-    last_error = None
-    for model_name in MODEL_FALLBACK_LIST:
-        try:
-            model = genai.GenerativeModel(model_name)
-            response = model.generate_content(f"{system_prompt}\nUSER REQUEST: {user_prompt}")
-            clean_text = response.text.replace("```json", "").replace("```", "").strip()
-            return json.loads(clean_text)
-        except Exception as e:
-            last_error = str(e)
-            continue
-    raise HTTPException(status_code=429, detail=f"Server Busy: {last_error}")
+    try:
+        model = genai.GenerativeModel(MODEL_NAME)
+        prompt = f"""
+        Original System: {request.prompt}
+        Target Language: {request.language}
+        
+        Return ONLY the code implementation in {request.language}. No markdown.
+        """
+        response = model.generate_content(prompt)
+        # Clean formatting
+        clean_code = response.text.replace("```" + request.language.lower(), "").replace("```", "").strip()
+        
+        return {
+            "code_snippet": clean_code,
+            "code_explanation": f"Rewritten in {request.language}"
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
