@@ -23,12 +23,14 @@ export default function AboutPage() {
     <div className="min-h-screen bg-slate-950 text-slate-200 font-sans selection:bg-blue-500/30">
       
       {/* --- NAVIGATION --- */}
-      <nav className="fixed top-0 w-full z-50 p-6 flex justify-between items-center backdrop-blur-md bg-slate-950/50 border-b border-white/5">
-        <Link href="/" className="flex items-center gap-2 text-slate-400 hover:text-white transition-colors group">
+      <nav className="fixed top-0 w-full z-50 p-6 flex flex-wrap items-center justify-between gap-4 backdrop-blur-md bg-slate-950/50 border-b border-white/5">
+        <Link href="/" className="flex items-center gap-2 text-slate-400 hover:text-white transition-colors group flex-shrink-0">
           <ArrowLeft size={20} className="group-hover:-translate-x-1 transition-transform" />
           <span className="font-mono text-sm tracking-wider">BACK TO TERMINAL</span>
         </Link>
-        <div className="text-xl font-black tracking-tighter">VISUAL<span className="text-blue-500">AI</span>ZE</div>
+        <div className="text-xl font-black tracking-tighter min-w-0">
+          VISUAL<span className="text-blue-500">AI</span>ZE
+        </div>
       </nav>
 
       {/* --- HERO SECTION --- */}
