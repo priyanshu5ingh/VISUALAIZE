@@ -1,6 +1,7 @@
 import os
 import json
 import sys
+import re
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
@@ -8,6 +9,26 @@ import google.generativeai as genai
 from dotenv import load_dotenv
 
 load_dotenv()
+
+# --- UTILITY FUNCTION: Safe JSON Parser ---
+def parse_json_response(response_text: str):
+    """
+    Safely parse JSON from LLM response, handling markdown code blocks.
+    
+    Handles cases like:
+    - ```json\n{...}\n```
+    - ```\n{...}\n```
+    - {raw JSON}
+    """
+    # Remove markdown code block wrapper if present
+    # Pattern: optional backticks + optional language tag + content + optional backticks
+    json_match = re.search(r'```(?:json)?\s*([\s\S]*?)\s*```', response_text)
+    if json_match:
+        response_text = json_match.group(1).strip()
+    else:
+        response_text = response_text.strip()
+    
+    return json.loads(response_text)
 
 # --- 1. SETUP API KEY ---
 GENAI_KEY = os.getenv("GEMINI_API_KEY")
@@ -120,7 +141,7 @@ async def generate_graph(request: GraphRequest):
     """
     try:
         response_text = get_smart_response(f"{system_prompt}\n\nUSER PROMPT: {request.prompt}", use_json=True)
-        return json.loads(response_text)
+        return parse_json_response(response_text)
     except Exception as e:
         print(f"Error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
