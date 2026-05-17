@@ -2,7 +2,7 @@
 
 import React, { useEffect, useRef } from 'react';
 import { motion, type Variants } from 'framer-motion';
-import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { Home } from 'lucide-react';
 
 // ─── Minimal Particle Canvas ─────────────────────────────────────────────────
@@ -89,6 +89,7 @@ const digitVariants: Variants = {
 
 // ─── Page ────────────────────────────────────────────────────────────────────
 export default function NotFound() {
+  const router = useRouter();
   return (
     <main
       className="relative w-full min-h-screen bg-slate-950 text-white font-sans overflow-hidden flex items-center justify-center"
@@ -191,31 +192,31 @@ export default function NotFound() {
           transition={{ duration: 0.65, delay: 0.95 }}
           className="flex flex-col sm:flex-row items-center gap-4"
         >
-          <Link href="/" aria-label="Return to VisualAIze home">
-            <motion.button
-              whileHover={{ scale: 1.06, boxShadow: '0 0 32px rgba(79,70,229,0.5)' }}
-              whileTap={{ scale: 0.96 }}
-              className="group relative flex items-center gap-2.5 px-8 py-3.5 bg-white text-slate-950 font-bold rounded-full text-sm shadow-[0_0_30px_-8px_rgba(255,255,255,0.3)] hover:bg-slate-100 transition-colors overflow-hidden"
-            >
-              <Home size={16} className="group-hover:scale-110 transition-transform" aria-hidden="true" />
-              <span>Return Home</span>
-              {/* shimmer */}
-              <span
-                aria-hidden="true"
-                className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700"
-              />
-            </motion.button>
-          </Link>
+          <motion.button
+            onClick={() => router.push('/')}
+            aria-label="Return to VisualAIze home"
+            whileHover={{ scale: 1.06, boxShadow: '0 0 32px rgba(79,70,229,0.5)' }}
+            whileTap={{ scale: 0.96 }}
+            className="group relative flex items-center gap-2.5 px-8 py-3.5 bg-white text-slate-950 font-bold rounded-full text-sm shadow-[0_0_30px_-8px_rgba(255,255,255,0.3)] hover:bg-slate-100 transition-colors overflow-hidden"
+          >
+            <Home size={16} className="group-hover:scale-110 transition-transform" aria-hidden="true" />
+            <span>Return Home</span>
+            {/* shimmer */}
+            <span
+              aria-hidden="true"
+              className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700"
+            />
+          </motion.button>
 
-          <Link href="/about" aria-label="Learn more about VisualAIze">
-            <motion.button
-              whileHover={{ scale: 1.04, borderColor: 'rgba(255,255,255,0.4)' }}
-              whileTap={{ scale: 0.97 }}
-              className="flex items-center gap-2 px-8 py-3.5 bg-transparent border border-white/20 text-slate-300 font-medium rounded-full text-sm hover:text-white transition-colors backdrop-blur-sm"
-            >
-              Learn More
-            </motion.button>
-          </Link>
+          <motion.button
+            onClick={() => router.push('/about')}
+            aria-label="Learn more about VisualAIze"
+            whileHover={{ scale: 1.04, borderColor: 'rgba(255,255,255,0.4)' }}
+            whileTap={{ scale: 0.97 }}
+            className="flex items-center gap-2 px-8 py-3.5 bg-transparent border border-white/20 text-slate-300 font-medium rounded-full text-sm hover:text-white transition-colors backdrop-blur-sm"
+          >
+            Learn More
+          </motion.button>
         </motion.div>
 
         {/* Footer wordmark */}
