@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
+import { usePathname } from 'next/navigation';
 
 interface PageTransitionProps {
   children: React.ReactNode;
@@ -12,14 +13,16 @@ interface PageTransitionProps {
  *
  * Wraps page content in a subtle fade-in / slight-slide-up animation.
  *
- * This component is consumed by `app/template.tsx`, which Next.js App Router
- * remounts on every navigation. The remount itself acts as the mount/unmount
- * trigger for AnimatePresence — no `usePathname` key needed here.
+ * Consumed by `app/template.tsx` — Next.js remounts template on every
+ * navigation, providing the mount/unmount lifecycle AnimatePresence needs.
+ * `key={pathname}` gives each route a stable identity so Framer Motion can
+ * reliably fire exit animations before the incoming page mounts.
  *
  * Accessibility: fully respects `prefers-reduced-motion`. When enabled,
  * only a quick opacity fade is applied with no vertical movement.
  */
 export default function PageTransition({ children }: PageTransitionProps) {
+  const pathname = usePathname();
   const shouldReduceMotion = useReducedMotion() ?? false;
 
   const variants = {
@@ -31,6 +34,7 @@ export default function PageTransition({ children }: PageTransitionProps) {
   return (
     <AnimatePresence mode="wait">
       <motion.div
+        key={pathname}
         variants={variants}
         initial="hidden"
         animate="visible"
