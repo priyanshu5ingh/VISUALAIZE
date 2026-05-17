@@ -511,7 +511,13 @@ function EditorContent({ onBack }: EditorProps) {
                           </>
                         )}
                       </div>
-                            <button className={`flex items-center gap-2 text-xs font-bold text-white bg-slate-800 px-3 py-1.5 rounded-lg border border-white/10 hover:border-blue-500/50 transition-colors ${isRegeneratingCode? 'opacity-50': 'opacity-100'}`}  disabled={isRegeneratingCode} onClick={()=>regenerateCode(codeLanguage)}>
+                            <button
+                              className={`flex items-center gap-2 text-xs font-bold text-white bg-slate-800 px-3 py-1.5 rounded-lg border border-white/10 hover:border-blue-500/50 transition-colors ${isRegeneratingCode? 'opacity-50': 'opacity-100'}`}
+                              disabled={isRegeneratingCode}
+                              onClick={() => regenerateCode(codeLanguage)}
+                              aria-label="Regenerate code"
+                              title="Regenerate code"
+                            >
                               <RefreshCw size={14}/>
                             </button>
                       </div>
