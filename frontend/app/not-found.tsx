@@ -1,12 +1,12 @@
 'use client';
 
 import React, { useEffect, useRef } from 'react';
-import { motion, type Variants } from 'framer-motion';
+import { motion, type Variants, useReducedMotion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import { Home } from 'lucide-react';
 
 // ─── Minimal Particle Canvas ─────────────────────────────────────────────────
-function ParticleField() {
+function ParticleField({ reduceMotion }: { reduceMotion: boolean }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
@@ -35,10 +35,9 @@ function ParticleField() {
       da: (Math.random() > 0.5 ? 1 : -1) * 0.003,
     }));
 
-    const tick = () => {
+    /** Draw a single static frame (grid + fixed dots) — no RAF loop. */
+    const drawStatic = () => {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-      // Subtle grid
       ctx.strokeStyle = 'rgba(59,130,246,0.035)';
       ctx.lineWidth = 1;
       for (let x = 0; x < canvas.width; x += 64) {
@@ -47,7 +46,25 @@ function ParticleField() {
       for (let y = 0; y < canvas.height; y += 64) {
         ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke();
       }
+      for (const p of particles) {
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(99,102,241,${p.a.toFixed(2)})`;
+        ctx.fill();
+      }
+    };
 
+    /** Animated frame loop — runs only when motion is allowed. */
+    const tick = () => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.strokeStyle = 'rgba(59,130,246,0.035)';
+      ctx.lineWidth = 1;
+      for (let x = 0; x < canvas.width; x += 64) {
+        ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); ctx.stroke();
+      }
+      for (let y = 0; y < canvas.height; y += 64) {
+        ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke();
+      }
       for (const p of particles) {
         p.x += p.vx; p.y += p.vy; p.a += p.da;
         if (p.a > 0.65 || p.a < 0.08) p.da *= -1;
@@ -55,19 +72,22 @@ function ParticleField() {
         if (p.x > canvas.width) p.x = 0;
         if (p.y < 0) p.y = canvas.height;
         if (p.y > canvas.height) p.y = 0;
-
         ctx.beginPath();
         ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
         ctx.fillStyle = `rgba(99,102,241,${p.a.toFixed(2)})`;
         ctx.fill();
       }
-
       rafId = requestAnimationFrame(tick);
     };
-    tick();
+
+    if (reduceMotion) {
+      drawStatic();
+    } else {
+      tick();
+    }
 
     return () => { cancelAnimationFrame(rafId); window.removeEventListener('resize', resize); };
-  }, []);
+  }, [reduceMotion]);
 
   return (
     <canvas
@@ -79,6 +99,7 @@ function ParticleField() {
 }
 
 // ─── Staggered digit animation ───────────────────────────────────────────────
+/** Full animation variant — used when motion is allowed. */
 const digitVariants: Variants = {
   hidden: { opacity: 0, y: 50, filter: 'blur(16px)' },
   visible: (i: number) => ({
@@ -87,16 +108,23 @@ const digitVariants: Variants = {
   }),
 };
 
+/** Reduced-motion variant — instant opacity fade, no movement or blur. */
+const digitVariantsReduced: Variants = {
+  hidden: { opacity: 0 },
+  visible: { opacity: 1, transition: { duration: 0.3 } },
+};
+
 // ─── Page ────────────────────────────────────────────────────────────────────
 export default function NotFound() {
   const router = useRouter();
+  const shouldReduceMotion = useReducedMotion() ?? false;
   return (
     <main
       className="relative w-full min-h-screen bg-slate-950 text-white font-sans overflow-hidden flex items-center justify-center"
       role="main"
     >
       {/* Background layer */}
-      <ParticleField />
+      <ParticleField reduceMotion={shouldReduceMotion} />
 
       {/* Glow blobs */}
       <div
@@ -111,20 +139,20 @@ export default function NotFound() {
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        transition={{ duration: 0.6 }}
+        transition={{ duration: shouldReduceMotion ? 0.15 : 0.6 }}
         className="relative z-10 flex flex-col items-center text-center px-6 py-16 w-full max-w-2xl mx-auto"
       >
         {/* Status chip */}
         <motion.div
-          initial={{ opacity: 0, y: -16 }}
+          initial={{ opacity: 0, y: shouldReduceMotion ? 0 : -16 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.55, delay: 0.15 }}
+          transition={{ duration: shouldReduceMotion ? 0.15 : 0.55, delay: shouldReduceMotion ? 0 : 0.15 }}
           className="inline-flex items-center gap-2 px-4 py-1.5 mb-10 rounded-full bg-blue-500/10 border border-blue-500/20 backdrop-blur-md"
           aria-label="404 — Page not found"
         >
           <motion.span
-            animate={{ opacity: [1, 0.25, 1] }}
-            transition={{ duration: 1.6, repeat: Infinity }}
+            animate={shouldReduceMotion ? { opacity: 1 } : { opacity: [1, 0.25, 1] }}
+            transition={shouldReduceMotion ? {} : { duration: 1.6, repeat: Infinity }}
             className="w-1.5 h-1.5 rounded-full bg-blue-400"
             aria-hidden="true"
           />
@@ -142,7 +170,7 @@ export default function NotFound() {
             <motion.span
               key={i}
               custom={i}
-              variants={digitVariants}
+              variants={shouldReduceMotion ? digitVariantsReduced : digitVariants}
               initial="hidden"
               animate="visible"
               className="relative inline-block"
@@ -163,9 +191,9 @@ export default function NotFound() {
 
         {/* Headline */}
         <motion.h2
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: shouldReduceMotion ? 0 : 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.7, delay: 0.65 }}
+          transition={{ duration: shouldReduceMotion ? 0.15 : 0.7, delay: shouldReduceMotion ? 0 : 0.65 }}
           className="text-2xl md:text-3xl font-bold tracking-tight text-white mb-4 leading-snug"
         >
           You drifted beyond{' '}
@@ -176,9 +204,9 @@ export default function NotFound() {
 
         {/* Supporting description */}
         <motion.p
-          initial={{ opacity: 0, y: 16 }}
+          initial={{ opacity: 0, y: shouldReduceMotion ? 0 : 16 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.7, delay: 0.8 }}
+          transition={{ duration: shouldReduceMotion ? 0.15 : 0.7, delay: shouldReduceMotion ? 0 : 0.8 }}
           className="text-slate-400 text-base md:text-lg leading-relaxed font-light max-w-md mb-12"
         >
           The neural pathways couldn&apos;t trace this route. Re-initialize your
@@ -187,9 +215,9 @@ export default function NotFound() {
 
         {/* CTA */}
         <motion.div
-          initial={{ opacity: 0, y: 16 }}
+          initial={{ opacity: 0, y: shouldReduceMotion ? 0 : 16 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.65, delay: 0.95 }}
+          transition={{ duration: shouldReduceMotion ? 0.15 : 0.65, delay: shouldReduceMotion ? 0 : 0.95 }}
           className="flex flex-col sm:flex-row items-center gap-4"
         >
           <motion.button
