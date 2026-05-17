@@ -28,8 +28,8 @@ def parse_json_response(response_text: str):
     # Only unwrap if the entire response is wrapped in backticks
     # This prevents breaking JSON with backticks in field values
     if response_text.startswith('```') and response_text.endswith('```'):
-        # Remove opening fence (``` or ```json)
-        response_text = re.sub(r'^```(?:json)?\s*', '', response_text)
+        # Remove opening fence and any optional Markdown info string (json, JSON, js, etc.)
+        response_text = re.sub(r'^```[^\n]*\n?', '', response_text)
         # Remove closing fence (```)
         response_text = re.sub(r'\s*```$', '', response_text)
         response_text = response_text.strip()
