@@ -15,17 +15,23 @@ def parse_json_response(response_text: str):
     """
     Safely parse JSON from LLM response, handling markdown code blocks.
     
+    Only unwraps if the ENTIRE response is a fenced block to avoid breaking
+    valid JSON that contains backticks in field values (e.g., code_snippet).
+    
     Handles cases like:
     - ```json\n{...}\n```
     - ```\n{...}\n```
-    - {raw JSON}
+    - {raw JSON with "field": "```code```"}
     """
-    # Remove markdown code block wrapper if present
-    # Pattern: optional backticks + optional language tag + content + optional backticks
-    json_match = re.search(r'```(?:json)?\s*([\s\S]*?)\s*```', response_text)
-    if json_match:
-        response_text = json_match.group(1).strip()
-    else:
+    response_text = response_text.strip()
+    
+    # Only unwrap if the entire response is wrapped in backticks
+    # This prevents breaking JSON with backticks in field values
+    if response_text.startswith('```') and response_text.endswith('```'):
+        # Remove opening fence (``` or ```json)
+        response_text = re.sub(r'^```(?:json)?\s*', '', response_text)
+        # Remove closing fence (```)
+        response_text = re.sub(r'\s*```$', '', response_text)
         response_text = response_text.strip()
     
     return json.loads(response_text)
