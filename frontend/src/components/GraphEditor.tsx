@@ -1,23 +1,48 @@
 // frontend/src/components/GraphEditor.tsx
 'use client';
 
-import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
-import ReactFlow, { 
-  Background, BackgroundVariant, Controls, MiniMap, applyEdgeChanges, applyNodeChanges, 
-  Node, Edge, OnNodesChange, OnEdgesChange, MarkerType, useReactFlow, ReactFlowProvider
+import { toPng } from 'html-to-image';
+import {
+  Activity,
+  ArrowLeft,
+  BookOpen,
+  Box,
+  Check,
+  ChevronDown,
+  Code, Copy,
+  Download,
+  GitBranch,
+  Globe,
+  Layers,
+  MessageSquare,
+  Mic,
+  Network,
+  PanelRightClose, PanelRightOpen,
+  Paperclip,
+  PlayCircle,
+  RefreshCw,
+  Send,
+  Share2, Terminal,
+  Zap
+} from 'lucide-react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import ReactFlow, {
+  applyEdgeChanges, applyNodeChanges,
+  Background, BackgroundVariant, Controls,
+  Edge,
+  MarkerType,
+  MiniMap,
+  Node,
+  OnEdgesChange,
+  OnNodesChange,
+  ReactFlowProvider,
+  useReactFlow
 } from 'reactflow';
 import 'reactflow/dist/style.css';
-import { toPng } from 'html-to-image';
-import { getLayoutedElements } from '../utils/layout'; 
-import { 
-  ArrowLeft, Box, GitBranch, Network, Share2, Terminal, 
-  Activity, BookOpen, PlayCircle, Layers, Code, Copy, Check, Zap, 
-  Globe, Mic, Download, ChevronDown, MessageSquare, Send, Paperclip, 
-  PanelRightClose, PanelRightOpen 
-} from 'lucide-react';
 import CustomNode from '../components/CustomNode';
-import LoadingCore from './LoadingCore'; 
+import { getLayoutedElements } from '../utils/layout';
 import HolographicScene from './HolographicScene';
+import LoadingCore from './LoadingCore';
 
 interface EditorProps { onBack: () => void; }
 
@@ -32,6 +57,11 @@ interface GraphData {
   code_explanation?: string;
   nodes: { id: string; label: string }[];
   edges: { source: string; target: string; label: string }[];
+}
+
+interface codeObject {
+  code_snippet: string;
+  code_explanation: string;
 }
 
 // --- SpeechRecognition type shim (not in lib.dom.d.ts) ---
@@ -179,6 +209,7 @@ function EditorContent({ onBack }: EditorProps) {
   
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
+  const codeCache = useRef(new Map<string, codeObject>());
   const reactFlowWrapper = useRef(null);
   const fileInputRef = useRef<HTMLInputElement>(null); 
   const { getNodes } = useReactFlow(); 
@@ -217,6 +248,8 @@ function EditorContent({ onBack }: EditorProps) {
       console.log("✅ [SUCCESS] Data received:", data);
       
       setGraphData(data);
+      codeCache.current.clear();
+      codeCache.current.set(codeLanguage, {code_snippet: data.code_snippet ?? '', code_explanation: data.code_explanation ?? ''});
       
       const rawNodes: Node[] = data.nodes.map((n: { id: string; label: string }) => ({
         id: n.id, type: 'default', data: { label: n.label }, position: { x: 0, y: 0 },
@@ -250,12 +283,19 @@ function EditorContent({ onBack }: EditorProps) {
       });
       const data = await res.json();
       setGraphData((prev: GraphData | null) => prev ? ({ ...prev, code_snippet: data.code_snippet, code_explanation: data.code_explanation }) : prev);
+      if (data) codeCache.current.set(newLang, {code_snippet: data.code_snippet ?? '', code_explanation: data.code_explanation ?? ''})
     } catch (err) { alert("Failed to rewrite code."); } finally { setIsRegeneratingCode(false); }
   } 
 
   const handleLanguageChange = async (newLang: string) => {
     setshowLanguageDropDown(false);
     if (newLang === codeLanguage || !graphData) return;
+    if (codeCache.current.has(newLang)){
+      setCodeLanguage(newLang);
+      const cachedCodeData = codeCache.current.get(newLang);
+      setGraphData((prev: GraphData | null) => prev && cachedCodeData ? ({ ...prev, code_snippet: cachedCodeData.code_snippet, code_explanation: cachedCodeData.code_explanation }) : prev);
+      return; 
+    }
     regenerateCode(newLang);
   };
 
@@ -441,7 +481,8 @@ function EditorContent({ onBack }: EditorProps) {
                 {activeTab === 'CODE' && (
                   <div className="h-full flex flex-col">
                     <div className="flex justify-between items-center mb-4">
-                      <div className="relative">
+                      <div className="relative flex gap-2">
+                        <div className="">
                         <button className={`flex items-center gap-2 text-xs font-bold text-white bg-slate-800 px-3 py-1.5 rounded-lg border border-white/10 hover:border-blue-500/50 focus:outline-none focus:ring-2 focus:ring-blue-500/40 transition-all ${isRegeneratingCode? 'opacity-50':'opacity-100'}`}
                           onClick={() => setshowLanguageDropDown(p => !p)}
                           disabled={isRegeneratingCode}
@@ -469,6 +510,10 @@ function EditorContent({ onBack }: EditorProps) {
                           </div>
                           </>
                         )}
+                      </div>
+                            <button className={`flex items-center gap-2 text-xs font-bold text-white bg-slate-800 px-3 py-1.5 rounded-lg border border-white/10 hover:border-blue-500/50 transition-colors ${isRegeneratingCode? 'opacity-50': 'opacity-100'}`}  disabled={isRegeneratingCode} onClick={()=>regenerateCode(codeLanguage)}>
+                              <RefreshCw size={14}/>
+                            </button>
                       </div>
                       <button onClick={handleCopyCode} className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 text-xs font-bold transition-colors">
                         {copied ? <Check size={14} /> : <Copy size={14} />} {copied ? 'COPIED' : 'COPY'}
