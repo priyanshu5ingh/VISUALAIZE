@@ -43,6 +43,7 @@ import CustomNode from '../components/CustomNode';
 import { getLayoutedElements } from '../utils/layout';
 import HolographicScene from './HolographicScene';
 import LoadingCore from './LoadingCore';
+import LoadingOverlay from './LoadingOverlay';
 
 interface EditorProps { onBack: () => void; }
 
@@ -195,7 +196,7 @@ function EditorContent({ onBack }: EditorProps) {
   const [nodes, setNodes] = useState<Node[]>([]);
   const [edges, setEdges] = useState<Edge[]>([]);
   const [prompt, setPrompt] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
   const [graphData, setGraphData] = useState<GraphData | null>(null);
   const [activeTab, setActiveTab] = useState<'ANALYSIS' | 'CODE' | 'CHAT'>('ANALYSIS');
   const [copied, setCopied] = useState(false);
@@ -219,8 +220,8 @@ function EditorContent({ onBack }: EditorProps) {
   const onEdgesChange: OnEdgesChange = useCallback((changes) => setEdges((eds) => applyEdgeChanges(changes, eds)), []);
 
   const generateGraph = async (text: string) => {
-    if (!text) return;
-    setLoading(true);
+    if (!text || isGenerating) return;
+    setIsGenerating(true);
     setPrompt(text);
     setGraphData(null);
     setActiveTab('ANALYSIS'); 
@@ -270,7 +271,7 @@ function EditorContent({ onBack }: EditorProps) {
       console.error("🚨 [CRITICAL ERROR]:", err);
       alert(`System Busy. Please check the console for the exact error.\n\nDetails: ${err}`);
     } finally {
-      setLoading(false);
+      setIsGenerating(false);
     }
   };
 
@@ -368,7 +369,7 @@ function EditorContent({ onBack }: EditorProps) {
       </div>
 
       <div className="absolute inset-0 bg-slate-950/20 pointer-events-none z-0" />
-      {loading && <LoadingCore />}
+      {isGenerating && <LoadingOverlay />}
 
       {/* 4. MAIN UI LAYER */}
       <div className="relative flex-1 h-full flex flex-col z-10" ref={reactFlowWrapper}>
@@ -396,8 +397,8 @@ function EditorContent({ onBack }: EditorProps) {
           </div>
         </div>
 
-        {nodes.length === 0 && !loading && <ZeroState onSelect={generateGraph} />}
-        {nodes.length === 0 && !loading && <SystemLogs />}
+        {nodes.length === 0 && !isGenerating && <ZeroState onSelect={generateGraph} />}
+        {nodes.length === 0 && !isGenerating && <SystemLogs />}
 
         {/* MAIN GRAPH AREA */}
         <div className="flex-1 w-full h-full">
@@ -423,8 +424,8 @@ function EditorContent({ onBack }: EditorProps) {
                     <Mic size={18} />
                 </button>
 
-                <button type="submit" disabled={loading} className="px-6 py-2 rounded-full bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs tracking-widest transition-all shadow-lg shadow-blue-500/20">
-                    {loading ? <span className="animate-pulse">PROCESSING</span> : "GENERATE"}
+                <button type="submit" disabled={isGenerating} className="px-6 py-2 rounded-full bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs tracking-widest transition-all shadow-lg shadow-blue-500/20">
+                    {isGenerating ? <span className="animate-pulse">PROCESSING</span> : "GENERATE"}
                 </button>
             </form>
         </div>
