@@ -515,6 +515,32 @@ If you are participating in **GirlScript Summer of Code (GSSOC)**, look for issu
 
 ---
 
+## 💖 Contributors
+
+Thanks to all the amazing people who contribute to **VISUALAIZE** 🚀
+
+<p align="center">
+  <a href="https://github.com/priyanshu5ingh/VISUALAIZE/graphs/contributors">
+    <img src="https://contrib.rocks/image?repo=priyanshu5ingh/VISUALAIZE" alt="Contributors"/>
+  </a>
+</p>
+
+<br>
+
+## ⭐ Project Support
+
+<p align="center">
+  <a href="https://github.com/priyanshu5ingh/VISUALAIZE/stargazers">
+    <img src="https://img.shields.io/github/stars/priyanshu5ingh/VISUALAIZE?style=social" alt="Stars">
+  </a>
+  &nbsp;&nbsp;
+  <a href="https://github.com/priyanshu5ingh/VISUALAIZE/network/members">
+    <img src="https://img.shields.io/github/forks/priyanshu5ingh/VISUALAIZE?style=social" alt="Forks">
+  </a>
+</p>
+
+---
+
 ## 📄 License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
