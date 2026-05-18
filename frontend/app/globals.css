@@ -34,3 +34,23 @@ body {
 .animate-shimmer {
   animation: shimmer 1.5s infinite;
 }
+
+/* ── Branded focus ring utility ─────────────────────────────────────────────
+   Apply .focus-ring to any interactive element (button, input, select, etc.)
+   to get a consistent, keyboard-accessible focus indicator that matches the
+   VisualAIze indigo/slate dark theme without overriding mouse-click outlines.
+   ─────────────────────────────────────────────────────────────────────────── */
+.focus-ring {
+  outline: none;
+}
+.focus-ring:focus-visible {
+  outline: 2px solid rgb(99 102 241 / 0.8); /* indigo-500 */
+  outline-offset: 2px;
+  border-radius: inherit;
+}
+
+/* ReactFlow built-in controls panel — targets buttons we cannot Tailwind-patch */
+.react-flow__controls-button:focus-visible {
+  outline: 2px solid rgb(99 102 241 / 0.8) !important;
+  outline-offset: 1px !important;
+}

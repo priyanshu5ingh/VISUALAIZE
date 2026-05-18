@@ -83,7 +83,7 @@ export default function LandingPage() {
                     whileHover={{ scale: 1.05, boxShadow: "0 0 30px rgba(79, 70, 229, 0.6)" }}
                     whileTap={{ scale: 0.95 }}
                     onClick={handleLaunch}
-                    className="group relative px-8 py-4 bg-white text-slate-950 font-bold rounded-full text-lg shadow-[0_0_50px_-10px_rgba(255,255,255,0.4)] hover:bg-slate-100 transition-all flex items-center gap-3 overflow-hidden"
+                    className="focus-ring group relative px-8 py-4 bg-white text-slate-950 font-bold rounded-full text-lg shadow-[0_0_50px_-10px_rgba(255,255,255,0.4)] hover:bg-slate-100 transition-all flex items-center gap-3 overflow-hidden"
                   >
                     <span className="relative z-10">Enter Studio</span>
                     <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform relative z-10" />
@@ -95,7 +95,7 @@ export default function LandingPage() {
                     <motion.button
                       whileHover={{ scale: 1.05, backgroundColor: "rgba(255,255,255,0.1)" }}
                       whileTap={{ scale: 0.95 }}
-                      className="px-8 py-4 bg-transparent border border-white/20 text-white font-semibold rounded-full text-lg hover:border-white/50 transition-all flex items-center gap-2 backdrop-blur-sm"
+                      className="focus-ring px-8 py-4 bg-transparent border border-white/20 text-white font-semibold rounded-full text-lg hover:border-white/50 transition-all flex items-center gap-2 backdrop-blur-sm"
                     >
                       <span className="relative z-10">Learn More</span>
                     </motion.button>

@@ -15,9 +15,14 @@ const InteractiveCard = ({ icon: Icon, title, desc }: InteractiveCardProps) => {
   return (
     <motion.div
       layout
+      role="button"
+      tabIndex={0}
       onHoverStart={() => setIsHovered(true)}
       onHoverEnd={() => setIsHovered(false)}
-      className={`relative p-8 rounded-2xl border transition-colors cursor-pointer overflow-hidden ${
+      onFocus={() => setIsHovered(true)}
+      onBlur={() => setIsHovered(false)}
+      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') e.currentTarget.click(); }}
+      className={`focus-ring relative p-8 rounded-2xl border transition-colors cursor-pointer overflow-hidden ${
         isHovered
           ? "bg-blue-900/20 border-blue-500/50" // Active Styles
           : "bg-slate-900 border-white/5"       // Idle Styles

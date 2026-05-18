@@ -176,7 +176,7 @@ const ZeroState = ({ onSelect }: { onSelect: (text: string) => void }) => {
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 pointer-events-auto">
           {suggestions.map((item, i) => (
-            <button key={i} onClick={() => onSelect(item.prompt)} className="group relative p-6 rounded-2xl border border-white/10 bg-black/40 backdrop-blur-md hover:bg-blue-900/20 hover:border-blue-500/50 transition-all text-left hover:-translate-y-2 shadow-2xl overflow-hidden">
+            <button key={i} onClick={() => onSelect(item.prompt)} className="focus-ring group relative p-6 rounded-2xl border border-white/10 bg-black/40 backdrop-blur-md hover:bg-blue-900/20 hover:border-blue-500/50 transition-all text-left hover:-translate-y-2 shadow-2xl overflow-hidden">
               <div className="absolute inset-0 bg-gradient-to-b from-blue-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
               <div className="relative z-10 mb-4 p-3 w-fit rounded-lg bg-white/5 text-blue-400 group-hover:bg-blue-500 group-hover:text-white transition-colors">
                   <item.icon size={24} />
@@ -375,7 +375,7 @@ function EditorContent({ onBack }: EditorProps) {
         
         {/* TOP BAR */}
         <div className="absolute top-0 left-0 w-full p-6 z-40 flex justify-between items-center pointer-events-none">
-          <button onClick={onBack} className="pointer-events-auto flex items-center gap-2 text-slate-400 hover:text-white transition-colors px-4 py-2 rounded-full hover:bg-white/10 backdrop-blur-md border border-white/5 hover:border-white/20">
+          <button onClick={onBack} className="focus-ring pointer-events-auto flex items-center gap-2 text-slate-400 hover:text-white transition-colors px-4 py-2 rounded-full hover:bg-white/10 backdrop-blur-md border border-white/5 hover:border-white/20">
             <ArrowLeft className="w-4 h-4" /> <span className="font-mono text-xs tracking-widest">TERMINAL</span>
           </button>
           
@@ -387,7 +387,7 @@ function EditorContent({ onBack }: EditorProps) {
              {graphData && (
                  <button 
                     onClick={() => setIsSidebarOpen(!isSidebarOpen)} 
-                    className="flex items-center gap-2 px-3 py-1 rounded-full bg-slate-800/80 backdrop-blur-md border border-white/10 text-xs text-slate-300 hover:bg-blue-600 hover:text-white transition-all shadow-lg"
+                    className="focus-ring flex items-center gap-2 px-3 py-1 rounded-full bg-slate-800/80 backdrop-blur-md border border-white/10 text-xs text-slate-300 hover:bg-blue-600 hover:text-white transition-all shadow-lg"
                  >
                     {isSidebarOpen ? <PanelRightClose size={14} /> : <PanelRightOpen size={14} />}
                     {isSidebarOpen ? 'CLOSE PANEL' : 'OPEN PANEL'}
@@ -415,15 +415,15 @@ function EditorContent({ onBack }: EditorProps) {
                 <input type="text" placeholder="Describe a system..." value={prompt} onChange={(e) => setPrompt(e.target.value)} className="flex-1 bg-transparent text-white placeholder-slate-500 text-sm font-medium outline-none font-mono"/>
                 
                 <input type="file" ref={fileInputRef} className="hidden" accept=".txt,.json,.js,.py" onChange={handleFileUpload} />
-                <button type="button" onClick={() => fileInputRef.current?.click()} className="p-2 rounded-full text-slate-400 hover:text-white hover:bg-white/10 transition-colors" title="Upload Problem File">
+                <button type="button" onClick={() => fileInputRef.current?.click()} className="focus-ring p-2 rounded-full text-slate-400 hover:text-white hover:bg-white/10 transition-colors" title="Upload Problem File" aria-label="Upload problem file">
                     <Paperclip size={18} />
                 </button>
 
-                <button type="button" onClick={startListening} className={`p-2 rounded-full transition-all ${isListening ? 'bg-red-500 text-white animate-pulse' : 'text-slate-400 hover:text-white hover:bg-white/10'}`}>
+                <button type="button" onClick={startListening} aria-label={isListening ? 'Stop voice input' : 'Start voice input'} className={`focus-ring p-2 rounded-full transition-all ${isListening ? 'bg-red-500 text-white animate-pulse' : 'text-slate-400 hover:text-white hover:bg-white/10'}`}>
                     <Mic size={18} />
                 </button>
 
-                <button type="submit" disabled={loading} className="px-6 py-2 rounded-full bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs tracking-widest transition-all shadow-lg shadow-blue-500/20">
+                <button type="submit" disabled={loading} className="focus-ring px-6 py-2 rounded-full bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs tracking-widest transition-all shadow-lg shadow-blue-500/20">
                     {loading ? <span className="animate-pulse">PROCESSING</span> : "GENERATE"}
                 </button>
             </form>
@@ -442,15 +442,15 @@ function EditorContent({ onBack }: EditorProps) {
                    <div className="flex items-center gap-2 mb-2 text-xs font-bold tracking-widest text-blue-500 uppercase"><Layers size={12} /> Analysis Complete</div>
                    <h2 className="text-xl font-bold text-white leading-tight">{graphData.title}</h2>
                 </div>
-                <button onClick={handleExport} className="p-2 text-slate-400 hover:text-white hover:bg-white/10 rounded-lg transition-colors" title="Export Image">
+                <button onClick={handleExport} className="focus-ring p-2 text-slate-400 hover:text-white hover:bg-white/10 rounded-lg transition-colors" title="Export as PNG" aria-label="Export graph as PNG">
                     <Download size={18} />
                 </button>
             </div>
 
             <div className="flex border-b border-white/10 min-w-[450px]">
-                <button onClick={() => setActiveTab('ANALYSIS')} className={`flex-1 py-3 text-xs font-bold tracking-wider hover:bg-white/5 transition-colors ${activeTab === 'ANALYSIS' ? 'text-blue-400 border-b-2 border-blue-400' : 'text-slate-500'}`}>ANALYSIS</button>
-                <button onClick={() => setActiveTab('CODE')} className={`flex-1 py-3 text-xs font-bold tracking-wider hover:bg-white/5 transition-colors flex items-center justify-center gap-2 ${activeTab === 'CODE' ? 'text-emerald-400 border-b-2 border-emerald-400' : 'text-slate-500'}`}><Code size={14} /> CODE</button>
-                <button onClick={() => setActiveTab('CHAT')} className={`flex-1 py-3 text-xs font-bold tracking-wider hover:bg-white/5 transition-colors flex items-center justify-center gap-2 ${activeTab === 'CHAT' ? 'text-purple-400 border-b-2 border-purple-400' : 'text-slate-500'}`}><MessageSquare size={14} /> AI TUTOR</button>
+                <button onClick={() => setActiveTab('ANALYSIS')} className={`focus-ring flex-1 py-3 text-xs font-bold tracking-wider hover:bg-white/5 transition-colors ${activeTab === 'ANALYSIS' ? 'text-blue-400 border-b-2 border-blue-400' : 'text-slate-500'}`}>ANALYSIS</button>
+                <button onClick={() => setActiveTab('CODE')} className={`focus-ring flex-1 py-3 text-xs font-bold tracking-wider hover:bg-white/5 transition-colors flex items-center justify-center gap-2 ${activeTab === 'CODE' ? 'text-emerald-400 border-b-2 border-emerald-400' : 'text-slate-500'}`}><Code size={14} /> CODE</button>
+                <button onClick={() => setActiveTab('CHAT')} className={`focus-ring flex-1 py-3 text-xs font-bold tracking-wider hover:bg-white/5 transition-colors flex items-center justify-center gap-2 ${activeTab === 'CHAT' ? 'text-purple-400 border-b-2 border-purple-400' : 'text-slate-500'}`}><MessageSquare size={14} /> AI TUTOR</button>
             </div>
 
             <div className="flex-1 overflow-y-auto p-6 space-y-6 min-w-[450px]">
@@ -483,7 +483,7 @@ function EditorContent({ onBack }: EditorProps) {
                     <div className="flex justify-between items-center mb-4">
                       <div className="relative flex gap-2">
                         <div className="">
-                        <button className={`flex items-center gap-2 text-xs font-bold text-white bg-slate-800 px-3 py-1.5 rounded-lg border border-white/10 hover:border-blue-500/50 focus:outline-none focus:ring-2 focus:ring-blue-500/40 transition-all ${isRegeneratingCode? 'opacity-50':'opacity-100'}`}
+                        <button className={`focus-ring flex items-center gap-2 text-xs font-bold text-white bg-slate-800 px-3 py-1.5 rounded-lg border border-white/10 hover:border-blue-500/50 focus:outline-none focus:ring-2 focus:ring-blue-500/40 transition-all ${isRegeneratingCode? 'opacity-50':'opacity-100'}`}
                           onClick={() => setshowLanguageDropDown(p => !p)}
                           disabled={isRegeneratingCode}
                         >
@@ -502,7 +502,7 @@ function EditorContent({ onBack }: EditorProps) {
                                 <button 
                                   key={lang} 
                                   onClick={() => handleLanguageChange(lang)} 
-                                  className="w-full text-left px-4 py-2 text-xs text-slate-300 hover:bg-blue-600 hover:text-white transition-colors first:border-b-0"
+                                  className="focus-ring w-full text-left px-4 py-2 text-xs text-slate-300 hover:bg-blue-600 hover:text-white transition-colors first:border-b-0"
                                 >
                                       {lang}
                                   </button>
@@ -512,7 +512,7 @@ function EditorContent({ onBack }: EditorProps) {
                         )}
                       </div>
                             <button
-                              className={`flex items-center gap-2 text-xs font-bold text-white bg-slate-800 px-3 py-1.5 rounded-lg border border-white/10 hover:border-blue-500/50 transition-colors ${isRegeneratingCode? 'opacity-50': 'opacity-100'}`}
+                              className={`focus-ring flex items-center gap-2 text-xs font-bold text-white bg-slate-800 px-3 py-1.5 rounded-lg border border-white/10 hover:border-blue-500/50 transition-colors ${isRegeneratingCode? 'opacity-50': 'opacity-100'}`}
                               disabled={isRegeneratingCode}
                               onClick={() => regenerateCode(codeLanguage)}
                               aria-label="Regenerate code"
@@ -521,7 +521,7 @@ function EditorContent({ onBack }: EditorProps) {
                               <RefreshCw size={14}/>
                             </button>
                       </div>
-                      <button onClick={handleCopyCode} className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 text-xs font-bold transition-colors">
+                      <button onClick={handleCopyCode} className="focus-ring flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 text-xs font-bold transition-colors">
                         {copied ? <Check size={14} /> : <Copy size={14} />} {copied ? 'COPIED' : 'COPY'}
                       </button>
                     </div>
@@ -566,9 +566,9 @@ function EditorContent({ onBack }: EditorProps) {
                                 placeholder="Type your question..." 
                                 value={chatInput}
                                 onChange={(e) => setChatInput(e.target.value)}
-                                className="w-full bg-slate-900/50 border border-white/10 rounded-lg pl-4 pr-10 py-3 text-xs text-white focus:border-blue-500 outline-none"
+                                className="focus-ring w-full bg-slate-900/50 border border-white/10 rounded-lg pl-4 pr-10 py-3 text-xs text-white focus:border-blue-500 outline-none"
                             />
-                            <button type="submit" disabled={isChatting} className="absolute right-2 top-6 text-blue-400 hover:text-white transition-colors">
+                            <button type="submit" disabled={isChatting} aria-label="Send message" className="focus-ring absolute right-2 top-6 text-blue-400 hover:text-white transition-colors">
                                 <Send size={16} />
                             </button>
                         </form>
