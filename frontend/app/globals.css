@@ -34,3 +34,90 @@ body {
 .animate-shimmer {
   animation: shimmer 1.5s infinite;
 }
+
+/* ── Branded focus ring utility ─────────────────────────────────────────────
+   Apply .focus-ring to any interactive element (button, input, select, etc.)
+   to get a consistent, keyboard-accessible focus indicator that matches the
+   VisualAIze indigo/slate dark theme without overriding mouse-click outlines.
+   ─────────────────────────────────────────────────────────────────────────── */
+.focus-ring {
+  outline: none;
+}
+.focus-ring:focus-visible {
+  outline: 2px solid rgb(99 102 241 / 0.8); /* indigo-500 */
+  outline-offset: 2px;
+  border-radius: inherit;
+}
+
+/* ReactFlow built-in controls panel — targets buttons we cannot Tailwind-patch */
+.react-flow__controls-button:focus-visible {
+  outline: 2px solid rgb(99 102 241 / 0.8) !important;
+  outline-offset: 1px !important;
+}
+/* Custom Scrollbar (dark mode) */
+@media (prefers-color-scheme: dark) {
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 10px;
+    border: 2px solid rgba(255, 255, 255, 0.05);
+    transition: background 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.25);
+    border-color: rgba(255, 255, 255, 0.1);
+    box-shadow: 0 0 15px rgba(255, 255, 255, 0.1);
+  }
+
+  ::-webkit-scrollbar-thumb:active {
+    background: rgba(255, 255, 255, 0.35);
+  }
+
+  * {
+    scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
+    scrollbar-width: thin;
+  }
+}
+
+/* Custom Scrollbar (light mode) */
+@media (prefers-color-scheme: light) {
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.15);
+    border-radius: 10px;
+    border: 2px solid rgba(0, 0, 0, 0.05);
+    transition: background 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 0, 0, 0.25);
+    border-color: rgba(0, 0, 0, 0.1);
+    box-shadow: 0 0 15px rgba(0, 0, 0, 0.08);
+  }
+
+  ::-webkit-scrollbar-thumb:active {
+    background: rgba(0, 0, 0, 0.35);
+  }
+
+  * {
+    scrollbar-color: rgba(0, 0, 0, 0.15) transparent;
+    scrollbar-width: thin;
+  }
+}

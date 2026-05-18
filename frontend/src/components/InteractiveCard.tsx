@@ -7,17 +7,41 @@ interface InteractiveCardProps {
   icon: LucideIcon;
   title: string;
   desc: string;
+  /** Optional click handler. When provided, the card exposes button semantics
+   *  to assistive technologies and becomes keyboard-activatable via Enter/Space.
+   *  When omitted the card renders as a presentational element (no role/tabIndex). */
+  onClick?: () => void;
 }
 
-const InteractiveCard = ({ icon: Icon, title, desc }: InteractiveCardProps) => {
+const InteractiveCard = ({ icon: Icon, title, desc, onClick }: InteractiveCardProps) => {
   const [isHovered, setIsHovered] = useState(false);
+
+  // Only expose interactive semantics when there is a meaningful action to trigger.
+  const isInteractive = !!onClick;
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (!isInteractive) return;
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault(); // Prevent Space from scrolling the page
+      onClick?.();
+    }
+  };
 
   return (
     <motion.div
       layout
+      // Conditionally apply button role/tabIndex only when truly interactive
+      role={isInteractive ? "button" : undefined}
+      tabIndex={isInteractive ? 0 : undefined}
+      onClick={isInteractive ? onClick : undefined}
+      onKeyDown={handleKeyDown}
       onHoverStart={() => setIsHovered(true)}
       onHoverEnd={() => setIsHovered(false)}
-      className={`relative p-8 rounded-2xl border transition-colors cursor-pointer overflow-hidden ${
+      onFocus={() => setIsHovered(true)}
+      onBlur={() => setIsHovered(false)}
+      className={`${isInteractive ? "focus-ring" : ""} relative p-8 rounded-2xl border transition-colors overflow-hidden ${
+        isInteractive ? "cursor-pointer" : "cursor-default"
+      } ${
         isHovered
           ? "bg-blue-900/20 border-blue-500/50" // Active Styles
           : "bg-slate-900 border-white/5"       // Idle Styles
@@ -56,7 +80,7 @@ const InteractiveCard = ({ icon: Icon, title, desc }: InteractiveCardProps) => {
           {title}
         </motion.h3>
 
-        {/* HIDDEN DESCRIPTION (Reveals on Hover) */}
+        {/* HIDDEN DESCRIPTION (Reveals on Hover / Focus) */}
         <AnimatePresence>
           {isHovered && (
             <motion.p

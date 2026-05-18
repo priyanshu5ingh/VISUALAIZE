@@ -24,7 +24,7 @@ export default function AboutPage() {
       
       {/* --- NAVIGATION --- */}
       <nav className="fixed top-0 w-full z-50 p-6 flex flex-wrap items-center justify-between gap-4 backdrop-blur-md bg-slate-950/50 border-b border-white/5">
-        <Link href="/" className="flex items-center gap-2 text-slate-400 hover:text-white transition-colors group flex-shrink-0">
+        <Link href="/" className="focus-ring flex items-center gap-2 text-slate-400 hover:text-white transition-colors group flex-shrink-0">
           <ArrowLeft size={20} className="group-hover:-translate-x-1 transition-transform" />
           <span className="font-mono text-sm tracking-wider">BACK TO TERMINAL</span>
         </Link>
@@ -131,7 +131,7 @@ export default function AboutPage() {
         <ScrollReveal>
           <h2 className="text-4xl font-bold text-white mb-8">Ready to visualize the future?</h2>
           <Link href="/">
-            <button className="px-10 py-4 bg-white text-slate-950 font-bold rounded-full text-lg hover:scale-105 transition-transform shadow-[0_0_40px_rgba(255,255,255,0.3)]">
+            <button className="focus-ring px-10 py-4 bg-white text-slate-950 font-bold rounded-full text-lg hover:scale-105 transition-transform shadow-[0_0_40px_rgba(255,255,255,0.3)]">
               Launch Studio
             </button>
           </Link>
