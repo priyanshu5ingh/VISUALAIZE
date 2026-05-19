@@ -87,12 +87,13 @@ interface WindowWithSpeech extends Window {
 // This ensures we ALWAYS talk to Render, avoiding localhost confusion.
 const BACKEND_URL = "https://visualaize-backend.onrender.com"; 
 
-// --- FIXED CSS FOR GLASS BUTTONS ---
 const glassControlsStyle = `
   .react-flow__panel .react-flow__controls {
-    background: rgba(15, 23, 42, 0.6) !important;
-    border: 1px solid rgba(255, 255, 255, 0.1) !important;
-    border-radius: 8px !important;
+    background: rgba(15, 23, 42, 0.65) !important;
+    backdrop-filter: blur(12px) !important;
+    -webkit-backdrop-filter: blur(12px) !important;
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    border-radius: 12px !important;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5) !important;
     overflow: hidden !important;
   }
@@ -100,18 +101,18 @@ const glassControlsStyle = `
     background: transparent !important;
     border: none !important;
     border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
-    width: 30px !important;
-    height: 30px !important;
+    width: 32px !important;
+    height: 32px !important;
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
-    transition: background 0.2s ease !important;
+    transition: background 0.2s ease, fill 0.2s ease !important;
   }
   .react-flow__controls-button:last-child {
     border-bottom: none !important;
   }
   .react-flow__controls-button:hover {
-    background: rgba(255, 255, 255, 0.2) !important;
+    background: rgba(99, 102, 241, 0.18) !important;
   }
   .react-flow__controls-button svg {
     fill: rgba(255, 255, 255, 0.8) !important;
@@ -119,7 +120,7 @@ const glassControlsStyle = `
     max-height: 14px !important;
   }
   .react-flow__controls-button:hover svg {
-    fill: #3b82f6 !important;
+    fill: #6366f1 !important;
   }
 `;
 
@@ -405,7 +406,22 @@ function EditorContent({ onBack }: EditorProps) {
             <ReactFlow nodes={nodes} edges={edges} nodeTypes={nodeTypes} onNodesChange={onNodesChange} onEdgesChange={onEdgesChange} fitView minZoom={0.1}>
                 <Background color="#94a3b8" gap={40} size={1} variant={BackgroundVariant.Dots} className="opacity-[0.1]" />
                 <Controls /> 
-                <MiniMap className="!bg-slate-900/80 !backdrop-blur-md !border-slate-800 rounded-lg" nodeColor="#3b82f6" maskColor="rgba(15, 23, 42, 0.6)" />
+                <MiniMap
+                  className="!border-white/5"
+                  nodeColor={(node) => {
+                    const label = node.data?.label?.toLowerCase() || '';
+                    if (label.includes('start')) return '#10b981'; // emerald-500
+                    if (label.includes('end') || label.includes('accept') || label.includes('final')) return '#a855f7'; // purple-500
+                    return '#6366f1'; // indigo-500
+                  }}
+                  maskColor="rgba(15, 23, 42, 0.7)"
+                  style={{
+                    backgroundColor: "rgba(15, 23, 42, 0.65)",
+                    backdropFilter: "blur(12px)",
+                    border: "1px solid rgba(255, 255, 255, 0.08)",
+                    borderRadius: "12px",
+                  }}
+                />
             </ReactFlow>
         </div>
 
