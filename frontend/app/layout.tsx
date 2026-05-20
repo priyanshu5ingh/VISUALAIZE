@@ -14,7 +14,20 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "VisualAIze",
-  description: "Visualize logic at the speed of thought.",
+  description:
+    "AI-powered graph visualization platform for creating interactive diagrams from natural language.",
+  applicationName: "VisualAIze",
+  openGraph: {
+    title: "VisualAIze",
+    description: "AI-powered graph visualization platform for creating interactive diagrams from natural language.",
+    type: "website",
+    siteName: "VisualAIze",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "VisualAIze",
+    description: "AI-powered graph visualization platform for creating interactive diagrams from natural language.",
+  },
 };
 
 export default function RootLayout({
