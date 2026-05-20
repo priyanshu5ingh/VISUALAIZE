@@ -1,6 +1,6 @@
 import React, { memo } from 'react';
 import { Handle, Position } from 'reactflow';
-import { Database, ArrowRightCircle, Server, Globe, Cloud, Shield, Box,  Activity } from 'lucide-react';
+import { Database, ArrowRightCircle, Server, Globe, Cloud, Shield, Box } from 'lucide-react';
 
 interface CustomNodeProps {
   data: { label: string; type?: string };
