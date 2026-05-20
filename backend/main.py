@@ -2,13 +2,67 @@ import os
 import json
 import sys
 import re
-from fastapi import FastAPI, HTTPException
+import hashlib
+from fastapi import FastAPI, HTTPException, Request
 from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
 import google.generativeai as genai
 from dotenv import load_dotenv
+import redis
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
 
 load_dotenv()
+
+# --- REDIS CONFIG & CONNECTIVITY ---
+REDIS_HOST = os.getenv("REDIS_HOST", "localhost")
+REDIS_PORT = int(os.getenv("REDIS_PORT", 6379))
+REDIS_URL = os.getenv("REDIS_URL", "")
+
+class InMemoryCache:
+    """Fallback in-memory cache if Redis is unavailable."""
+    def __init__(self):
+        self._cache = {}
+        print("💡 Created in-memory fallback prompt cache.")
+
+    def get(self, key: str) -> str:
+        return self._cache.get(key)
+
+    def setex(self, key: str, time: int, value: str):
+        self._cache[key] = value
+
+# Initialize Cache (Redis with memory fallback)
+redis_client = None
+cache = None
+try:
+    if REDIS_URL:
+        redis_client = redis.from_url(REDIS_URL, decode_responses=True, socket_connect_timeout=2)
+    else:
+        redis_client = redis.Redis(host=REDIS_HOST, port=REDIS_PORT, decode_responses=True, socket_connect_timeout=2)
+    
+    redis_client.ping()
+    print("✅ Connected to Redis cache successfully.")
+    cache = redis_client
+except Exception as e:
+    print(f"⚠️ Redis is not available: {e}. Falling back to in-memory cache.")
+    cache = InMemoryCache()
+
+# --- RATE LIMITER CONFIG ---
+storage_uri = REDIS_URL if REDIS_URL else f"redis://{REDIS_HOST}:{REDIS_PORT}"
+if redis_client is None:
+    storage_uri = "memory://"
+
+limiter = Limiter(key_func=get_remote_address, storage_uri=storage_uri)
+
+def get_cache_key(prompt: str) -> str:
+    """Normalize user prompt and return a SHA-256 hash representation."""
+    normalized = prompt.strip().lower()
+    normalized = re.sub(r'\s+', ' ', normalized)
+    normalized = re.sub(r'[?!.]+$', '', normalized)
+    hash_val = hashlib.sha256(normalized.encode("utf-8")).hexdigest()
+    return f"graph:{hash_val}"
+
 
 # --- UTILITY FUNCTION: Safe JSON Parser ---
 def parse_json_response(response_text: str):
@@ -74,6 +128,8 @@ if not AVAILABLE_MODELS:
     AVAILABLE_MODELS = ["models/gemini-2.0-flash", "models/gemini-1.5-flash"]
 
 app = FastAPI()
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 app.add_middleware(
     CORSMiddleware,
@@ -82,6 +138,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
 
 class GraphRequest(BaseModel):
     prompt: str
@@ -127,9 +184,19 @@ def health_check():
     return {"status": "Online", "models": AVAILABLE_MODELS}
 
 @app.post("/generate")
-async def generate_graph(request: GraphRequest):
+@limiter.limit("10/minute")
+async def generate_graph(request: Request, payload: GraphRequest):
     if not GENAI_KEY:
         raise HTTPException(status_code=500, detail="API Key missing on Render.")
+
+    cache_key = get_cache_key(payload.prompt)
+    try:
+        cached_result = cache.get(cache_key)
+        if cached_result:
+            print(f"🚀 Cache Hit for key: {cache_key}")
+            return json.loads(cached_result)
+    except Exception as cache_err:
+        print(f"⚠️ Cache read error: {cache_err}")
 
     system_prompt = """
     You are a System Visualization AI. 
@@ -146,24 +213,32 @@ async def generate_graph(request: GraphRequest):
     }
     """
     try:
-        response_text = get_smart_response(f"{system_prompt}\n\nUSER PROMPT: {request.prompt}", use_json=True)
-        return parse_json_response(response_text)
+        response_text = get_smart_response(f"{system_prompt}\n\nUSER PROMPT: {payload.prompt}", use_json=True)
+        result_json = parse_json_response(response_text)
+        try:
+            cache.setex(cache_key, 86400, json.dumps(result_json))
+            print(f"💾 Cached new graph layout under key: {cache_key}")
+        except Exception as cache_err:
+            print(f"⚠️ Cache write error: {cache_err}")
+        return result_json
     except Exception as e:
         print(f"Error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/chat")
-async def chat_with_ai(request: ChatRequest):
+@limiter.limit("20/minute")
+async def chat_with_ai(request: Request, payload: ChatRequest):
     try:
-        response_text = get_smart_response(f"Context: {request.context}\nUser: {request.message}", use_json=False)
+        response_text = get_smart_response(f"Context: {payload.context}\nUser: {payload.message}", use_json=False)
         return {"reply": response_text}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/regenerate_code")
-async def regenerate_code(request: CodeRequest):
+@limiter.limit("15/minute")
+async def regenerate_code(request: Request, payload: CodeRequest):
     try:
-        response_text = get_smart_response(f"Convert: {request.prompt} to {request.language}. Return ONLY code.", use_json=False)
-        return {"code_snippet": response_text.replace("```",""), "code_explanation": f"Converted to {request.language}"}
+        response_text = get_smart_response(f"Convert: {payload.prompt} to {payload.language}. Return ONLY code.", use_json=False)
+        return {"code_snippet": response_text.replace("```",""), "code_explanation": f"Converted to {payload.language}"}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e))

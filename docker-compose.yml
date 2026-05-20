@@ -15,6 +15,8 @@ services:
       - ./backend/.env
     environment:
       - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
     ports:
       - "8000:8000"
     healthcheck:
@@ -23,8 +25,25 @@ services:
       timeout: 10s
       retries: 3
       start_period: 15s
+    depends_on:
+      - redis
     networks:
       - visualaize-net
+
+  # -----------------------------------------------------------------------
+  # Redis Cache & Storage
+  # -----------------------------------------------------------------------
+  redis:
+    image: redis:7-alpine
+    container_name: visualaize-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - visualaize-net
+
 
   # -----------------------------------------------------------------------
   # Frontend — Next.js
@@ -57,3 +76,7 @@ services:
 networks:
   visualaize-net:
     driver: bridge
+
+volumes:
+  redis-data:
+
