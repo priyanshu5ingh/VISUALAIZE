@@ -20,17 +20,32 @@ REDIS_HOST = os.getenv("REDIS_HOST", "localhost")
 REDIS_PORT = int(os.getenv("REDIS_PORT", 6379))
 REDIS_URL = os.getenv("REDIS_URL", "")
 
+import time
+
 class InMemoryCache:
     """Fallback in-memory cache if Redis is unavailable."""
-    def __init__(self):
+    def __init__(self, max_size=1000):
         self._cache = {}
+        self._max_size = max_size
         print("💡 Created in-memory fallback prompt cache.")
 
     def get(self, key: str) -> str:
-        return self._cache.get(key)
+        if key in self._cache:
+            entry = self._cache[key]
+            if time.time() < entry['expires_at']:
+                return entry['value']
+            else:
+                del self._cache[key]
+        return None
 
-    def setex(self, key: str, time: int, value: str):
-        self._cache[key] = value
+    def setex(self, key: str, time_sec: int, value: str):
+        if len(self._cache) >= self._max_size:
+            # Naive eviction: clear cache to prevent OOM
+            self._cache.clear()
+        self._cache[key] = {
+            'value': value,
+            'expires_at': time.time() + time_sec
+        }
 
 # Initialize Cache (Redis with memory fallback)
 redis_client = None
