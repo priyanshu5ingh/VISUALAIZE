@@ -543,7 +543,7 @@ Thanks to all the amazing people who contribute to **VISUALAIZE** 🚀
 
 ## 📄 License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ---
 
