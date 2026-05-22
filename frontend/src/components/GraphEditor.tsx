@@ -179,9 +179,9 @@ const ZeroState = ({ onSelect }: { onSelect: (text: string) => void }) => {
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 pointer-events-auto">
           {suggestions.map((item, i) => (
-            <button key={i} onClick={() => onSelect(item.prompt)} className="focus-ring group relative p-6 rounded-2xl border border-white/10 bg-black/40 backdrop-blur-xl hover:bg-indigo-900/20 hover:border-indigo-500/50 transition-all text-left hover:-translate-y-2 shadow-[0_8px_32px_rgba(0,0,0,0.37)] overflow-hidden">
+            <button key={i} onClick={() => onSelect(item.prompt)} className="focus-ring group relative p-6 rounded-2xl border border-white/10 bg-black/40 backdrop-blur-2xl hover:bg-indigo-900/20 hover:border-indigo-500/50 transition-all text-left hover:-translate-y-2 shadow-[0_8px_32px_rgba(0,0,0,0.37)] overflow-hidden">
               <div className="absolute inset-0 bg-gradient-to-b from-indigo-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-              <div className="relative z-10 mb-4 p-3 w-fit rounded-lg bg-white/5 text-blue-400 group-hover:bg-blue-500 group-hover:text-white transition-colors">
+              <div className="relative z-10 mb-4 p-3 w-fit rounded-lg bg-white/5 text-indigo-400 group-hover:bg-indigo-500 group-hover:text-white transition-colors">
                   <item.icon size={24} />
               </div>
               <h3 className="relative z-10 text-lg font-bold text-white mb-1">{item.label}</h3>
@@ -482,7 +482,7 @@ function EditorContent({ onBack }: EditorProps) {
         {/* INPUT BAR — hidden in focus mode so the canvas extends to the bottom edge */}
         {!isFullscreen && (
         <div className="absolute bottom-10 left-1/2 -translate-x-1/2 w-[600px] z-50">
-            <form onSubmit={(e) => { e.preventDefault(); generateGraph(prompt); }} className="relative group flex items-center gap-3 p-2 pl-4 rounded-full border border-white/10 bg-black/40 backdrop-blur-3xl shadow-[0_8px_32px_rgba(0,0,0,0.37)] focus-within:border-indigo-500/50 focus-within:ring-2 focus-within:ring-indigo-500/30 transition-all">
+            <form onSubmit={(e) => { e.preventDefault(); generateGraph(prompt); }} className="relative group flex items-center gap-3 p-2 pl-4 rounded-full border border-white/10 bg-black/40 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.37)] focus-within:border-indigo-500/50 focus-within:ring-2 focus-within:ring-indigo-500/30 transition-all">
                 <Terminal size={18} className="text-indigo-400" />
                 <input type="text" placeholder="Describe a system..." value={prompt} onChange={(e) => setPrompt(e.target.value)} className="flex-1 bg-transparent text-white placeholder-slate-500 text-sm font-medium outline-none font-mono"/>
                 
@@ -506,7 +506,7 @@ function EditorContent({ onBack }: EditorProps) {
       {/* RIGHT: SLIDING SIDEBAR — hidden in focus mode to give the canvas full width */}
       {!isFullscreen && (
       <div 
-        className={`border-l border-white/10 bg-slate-950/70 backdrop-blur-3xl flex flex-col shadow-2xl z-40 transition-all duration-500 ease-in-out overflow-hidden`}
+        className={`border-l border-white/10 bg-slate-950/70 backdrop-blur-2xl flex flex-col shadow-2xl z-40 transition-all duration-500 ease-in-out overflow-hidden`}
         style={{ width: isSidebarOpen && graphData ? '450px' : '0px', opacity: isSidebarOpen && graphData ? 1 : 0 }}
       >
         {graphData && (

@@ -117,19 +117,19 @@ export default function LandingPage() {
             transition={{ delay: 0.5, duration: 1 }}
             className="absolute bottom-4 w-full px-10 z-20 flex justify-center gap-16 text-slate-400 pointer-events-none"
           >
-            <div className="flex flex-col items-center gap-2 group">
+            <div className="flex flex-col items-center gap-2 group pointer-events-auto">
               <div className="p-3 rounded-full bg-slate-900/60 backdrop-blur-md border border-slate-700/50 group-hover:border-yellow-500/50 group-hover:shadow-[0_0_20px_rgba(234,179,8,0.3)] transition-all">
                 <Zap className="w-6 h-6 text-yellow-400" />
               </div>
               <span className="text-xs font-semibold tracking-wider uppercase">Instant</span>
             </div>
-            <div className="flex flex-col items-center gap-2 group">
+            <div className="flex flex-col items-center gap-2 group pointer-events-auto">
               <div className="p-3 rounded-full bg-slate-900/60 backdrop-blur-md border border-slate-700/50 group-hover:border-indigo-500/50 group-hover:shadow-[0_0_20px_rgba(99,102,241,0.3)] transition-all">
                 <Cpu className="w-6 h-6 text-indigo-400" />
               </div>
               <span className="text-xs font-semibold tracking-wider uppercase">Neural</span>
             </div>
-            <div className="flex flex-col items-center gap-2 group">
+            <div className="flex flex-col items-center gap-2 group pointer-events-auto">
               <div className="p-3 rounded-full bg-slate-900/60 backdrop-blur-md border border-slate-700/50 group-hover:border-fuchsia-500/50 group-hover:shadow-[0_0_20px_rgba(217,70,239,0.3)] transition-all">
                 <Share2 className="w-6 h-6 text-fuchsia-400" />
               </div>
