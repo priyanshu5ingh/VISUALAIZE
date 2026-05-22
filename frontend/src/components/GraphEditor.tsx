@@ -14,8 +14,10 @@ import {
   GitBranch,
   Globe,
   Layers,
+  Maximize2,
   MessageSquare,
   Mic,
+  Minimize2,
   Network,
   PanelRightClose, PanelRightOpen,
   Paperclip,
@@ -87,12 +89,13 @@ interface WindowWithSpeech extends Window {
 // This ensures we ALWAYS talk to Render, avoiding localhost confusion.
 const BACKEND_URL = "https://visualaize-backend.onrender.com"; 
 
-// --- FIXED CSS FOR GLASS BUTTONS ---
 const glassControlsStyle = `
   .react-flow__panel .react-flow__controls {
-    background: rgba(15, 23, 42, 0.6) !important;
-    border: 1px solid rgba(255, 255, 255, 0.1) !important;
-    border-radius: 8px !important;
+    background: rgba(15, 23, 42, 0.65) !important;
+    backdrop-filter: blur(12px) !important;
+    -webkit-backdrop-filter: blur(12px) !important;
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    border-radius: 12px !important;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5) !important;
     overflow: hidden !important;
   }
@@ -100,26 +103,33 @@ const glassControlsStyle = `
     background: transparent !important;
     border: none !important;
     border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
-    width: 30px !important;
-    height: 30px !important;
+    width: 32px !important;
+    height: 32px !important;
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
-    transition: background 0.2s ease !important;
+    transition: background 0.2s ease, fill 0.2s ease !important;
   }
   .react-flow__controls-button:last-child {
     border-bottom: none !important;
   }
   .react-flow__controls-button:hover {
-    background: rgba(255, 255, 255, 0.2) !important;
+    background: rgba(99, 102, 241, 0.18) !important;
   }
   .react-flow__controls-button svg {
-    fill: rgba(255, 255, 255, 0.8) !important;
+    fill: rgba(255, 255, 255, 0.95) !important;
     max-width: 14px !important;
     max-height: 14px !important;
   }
   .react-flow__controls-button:hover svg {
-    fill: #3b82f6 !important;
+    fill: #818cf8 !important;
+  }
+  .react-flow__controls-button:focus-visible {
+    position: relative !important;
+    z-index: 10 !important;
+    outline: 2px solid rgba(99, 102, 241, 0.85) !important;
+    outline-offset: -2px !important;
+    box-shadow: inset 0 0 0 2px rgba(99, 102, 241, 0.85) !important;
   }
 `;
 
@@ -195,6 +205,7 @@ const ZeroState = ({ onSelect }: { onSelect: (text: string) => void }) => {
 function EditorContent({ onBack }: EditorProps) {
   const [nodes, setNodes] = useState<Node[]>([]);
   const [edges, setEdges] = useState<Edge[]>([]);
+  const [viewport, setViewport] = useState({ x: 0, y: 0, zoom: 1 });
   const [prompt, setPrompt] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [graphData, setGraphData] = useState<GraphData | null>(null);
@@ -210,14 +221,37 @@ function EditorContent({ onBack }: EditorProps) {
   
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
+  /**
+   * Controls the fullscreen/focus mode for the ReactFlow canvas.
+   * When `true`, the top navigation bar, bottom input bar, and right
+   * analysis sidebar are hidden so the graph canvas occupies the
+   * full viewport — giving the user an uncluttered editing experience.
+   * The user can exit focus mode via the toggle button or the Escape key.
+   */
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
   const codeCache = useRef(new Map<string, codeObject>());
   const reactFlowWrapper = useRef(null);
   const fileInputRef = useRef<HTMLInputElement>(null); 
-  const { getNodes } = useReactFlow(); 
+  const { getViewport } = useReactFlow();
 
-  const nodeTypes = useMemo(() => ({ default: CustomNode, input: CustomNode, output: CustomNode }), []);
+ const nodeTypes = useMemo(() => ({
+  custom: CustomNode,
+}), []);
+
+  const edgeTypes = useMemo(() => ({}), []);
   const onNodesChange: OnNodesChange = useCallback((changes) => setNodes((nds) => applyNodeChanges(changes, nds)), []);
   const onEdgesChange: OnEdgesChange = useCallback((changes) => setEdges((eds) => applyEdgeChanges(changes, eds)), []);
+
+  const rafRef = useRef<number | null>(null);
+
+  const onMove = useCallback((_: any, vp: any) => {
+  if (rafRef.current) cancelAnimationFrame(rafRef.current);
+
+  rafRef.current = requestAnimationFrame(() => {
+    setViewport(vp);
+  });
+}, []);
 
   const generateGraph = async (text: string) => {
     if (!text || isGenerating) return;
@@ -253,11 +287,11 @@ function EditorContent({ onBack }: EditorProps) {
       codeCache.current.set(codeLanguage, {code_snippet: data.code_snippet ?? '', code_explanation: data.code_explanation ?? ''});
       
       const rawNodes: Node[] = data.nodes.map((n: { id: string; label: string }) => ({
-        id: n.id, type: 'default', data: { label: n.label }, position: { x: 0, y: 0 },
+        id: n.id, type: 'custom', data: { label: n.label }, position: { x: 0, y: 0 },
         style: { background: 'transparent', border: 'none', boxShadow: 'none', width: 'auto' },
       }));
       const rawEdges: Edge[] = data.edges.map((e: { source: string; target: string; label: string }, i: number) => ({
-        id: `e-${i}`, source: e.source, target: e.target, label: e.label, type: 'bezier', animated: true,
+        id: `e-${i}`, source: e.source, target: e.target, label: e.label, type: 'default', animated: true,
         markerEnd: { type: MarkerType.ArrowClosed, color: '#60a5fa' },
         style: { stroke: '#3b82f6', strokeWidth: 2, filter: 'drop-shadow(0 0 3px #3b82f6)' },
         labelStyle: { fill: '#93c5fd', fontWeight: 700 }
@@ -265,6 +299,9 @@ function EditorContent({ onBack }: EditorProps) {
       const { nodes: layoutedNodes, edges: layoutedEdges } = getLayoutedElements(rawNodes, rawEdges);
       setNodes(layoutedNodes);
       setEdges(layoutedEdges);
+      console.log("RAW BACKEND DATA:", data.nodes, data.edges);
+      console.log("LAYOUTED NODES:", layoutedNodes.length);
+      console.log("LAYOUTED EDGES:", layoutedEdges.length);
       setIsSidebarOpen(true); 
 
     } catch (err) {
@@ -355,7 +392,65 @@ function EditorContent({ onBack }: EditorProps) {
     }
   };
 
+
   const showBackground = nodes.length === 0;
+  console.log("REACT STATE CHECK -> nodes:", nodes.length, "edges:", edges.length);
+
+  const { x, y, zoom } = getViewport();
+
+  const buffer = 500;
+
+  // Performance optimization: render only nodes within viewport bounds
+// to reduce rendering cost for large graphs
+
+const visibleNodes = useMemo(() => {
+  const vp = getViewport();
+  const { x, y, zoom } = vp;
+
+  return nodes.filter((node) => {
+    const screenX = node.position.x * zoom + x;
+    const screenY = node.position.y * zoom + y;
+
+    return (
+      screenX > -buffer &&
+      screenX < window.innerWidth + buffer &&
+      screenY > -buffer &&
+      screenY < window.innerHeight + buffer
+    );
+  });
+}, [nodes, viewport]);
+
+const visibleNodeIds = useMemo(() => {
+  return new Set(visibleNodes.map(n => n.id));
+}, [visibleNodes]);
+
+const filteredEdges = useMemo(() => {
+  return edges.filter(
+    (e) => visibleNodeIds.has(e.source) && visibleNodeIds.has(e.target)
+  );
+}, [edges, visibleNodeIds]);
+
+console.log(
+  "TOTAL:", nodes.length,
+  "VISIBLE:", visibleNodes.length
+);
+  console.log("VISIBLE CHECK:", visibleNodes.length);
+
+  console.log("VIEWPORT:", getViewport());
+
+  /**
+   * Registers a global `keydown` listener so pressing Escape exits
+   * focus mode. The listener is added only while `isFullscreen` is
+   * `true` and is cleaned up on unmount or when the flag changes,
+   * preventing stale closures and unnecessary event handling.
+   */
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isFullscreen) setIsFullscreen(false);
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isFullscreen]);
 
   return (
     <div className="relative flex h-screen w-screen bg-black overflow-hidden font-sans text-slate-200">
@@ -374,7 +469,8 @@ function EditorContent({ onBack }: EditorProps) {
       {/* 4. MAIN UI LAYER */}
       <div className="relative flex-1 h-full flex flex-col z-10" ref={reactFlowWrapper}>
         
-        {/* TOP BAR */}
+        {/* TOP BAR — hidden in focus mode to maximise canvas real-estate */}
+        {!isFullscreen && (
         <div className="absolute top-0 left-0 w-full p-6 z-40 flex justify-between items-center pointer-events-none">
           <button onClick={onBack} className="focus-ring pointer-events-auto flex items-center gap-2 text-slate-400 hover:text-white transition-colors px-4 py-2 rounded-full hover:bg-white/10 backdrop-blur-md border border-white/5 hover:border-white/20">
             <ArrowLeft className="w-4 h-4" /> <span className="font-mono text-xs tracking-widest">TERMINAL</span>
@@ -396,20 +492,76 @@ function EditorContent({ onBack }: EditorProps) {
              )}
           </div>
         </div>
+        )}
+
+        {/*
+          FULLSCREEN / FOCUS MODE TOGGLE
+          Always visible (z-50) so the user can enter or exit focus mode
+          regardless of the current UI state. Renders at the top-right
+          corner of the canvas. The button label and icon swap between
+          Maximize2 / Minimize2 to clearly communicate the current state.
+          Keyboard shortcut: Escape (exit only) — handled by the
+          useEffect hook above.
+        */}
+        <button
+          onClick={() => setIsFullscreen(f => !f)}
+          className="focus-ring absolute top-4 right-4 z-50 pointer-events-auto flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-900/60 backdrop-blur-md border border-white/10 text-xs font-mono text-slate-300 hover:bg-blue-600 hover:text-white hover:border-blue-500/50 transition-all shadow-lg"
+          title={isFullscreen ? 'Exit Focus Mode (Esc)' : 'Focus Mode'}
+          aria-label={isFullscreen ? 'Exit Focus Mode' : 'Enter Focus Mode'}
+        >
+          {isFullscreen ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
+          {isFullscreen ? 'EXIT FOCUS' : 'FOCUS'}
+        </button>
 
         {nodes.length === 0 && !isGenerating && <ZeroState onSelect={generateGraph} />}
         {nodes.length === 0 && !isGenerating && <SystemLogs />}
 
         {/* MAIN GRAPH AREA */}
         <div className="flex-1 w-full h-full">
-            <ReactFlow nodes={nodes} edges={edges} nodeTypes={nodeTypes} onNodesChange={onNodesChange} onEdgesChange={onEdgesChange} fitView minZoom={0.1}>
-                <Background color="#94a3b8" gap={40} size={1} variant={BackgroundVariant.Dots} className="opacity-[0.1]" />
-                <Controls /> 
-                <MiniMap className="!bg-slate-900/80 !backdrop-blur-md !border-slate-800 rounded-lg" nodeColor="#3b82f6" maskColor="rgba(15, 23, 42, 0.6)" />
+            <ReactFlow
+                nodes={nodes}
+                edges={edges}
+                nodeTypes={nodeTypes}
+                onNodesChange={onNodesChange}
+                onEdgesChange={onEdgesChange}
+                fitView
+                minZoom={0.1}
+            >
+                <Background
+                    color="#94a3b8"
+                    gap={40}
+                    size={1}
+                    variant={BackgroundVariant.Dots}
+                    className="opacity-[0.1]"
+                />
+
+                {/* Show controls only after graph generation */}
+                {nodes.length > 0 && <Controls />}
+
+                {/* Show minimap only after graph generation */}
+                {nodes.length > 0 && (
+                    <MiniMap
+                      className="!border-white/5"
+                      nodeColor={(node) => {
+                        const label = node.data?.label?.toLowerCase() || '';
+                        if (label.includes('start')) return '#10b981'; // emerald-500
+                        if (label.includes('end') || label.includes('accept') || label.includes('final')) return '#a855f7'; // purple-500
+                        return '#6366f1'; // indigo-500
+                      }}
+                      maskColor="rgba(15, 23, 42, 0.7)"
+                      style={{
+                        backgroundColor: "rgba(15, 23, 42, 0.65)",
+                        backdropFilter: "blur(12px)",
+                        border: "1px solid rgba(255, 255, 255, 0.08)",
+                        borderRadius: "12px",
+                      }}
+                    />
+                )}
             </ReactFlow>
         </div>
 
-        {/* INPUT BAR */}
+        {/* INPUT BAR — hidden in focus mode so the canvas extends to the bottom edge */}
+        {!isFullscreen && (
         <div className="absolute bottom-10 left-1/2 -translate-x-1/2 w-[600px] z-50">
             <form onSubmit={(e) => { e.preventDefault(); generateGraph(prompt); }} className="relative group flex items-center gap-3 p-2 pl-4 rounded-full border border-white/10 bg-black/60 backdrop-blur-xl shadow-[0_0_40px_-10px_rgba(0,0,0,0.5)] focus-within:border-blue-500/50 focus-within:ring-1 focus-within:ring-blue-500/20 transition-all">
                 <Terminal size={18} className="text-blue-400" />
@@ -429,9 +581,11 @@ function EditorContent({ onBack }: EditorProps) {
                 </button>
             </form>
         </div>
+        )}
       </div>
 
-      {/* RIGHT: SLIDING SIDEBAR */}
+      {/* RIGHT: SLIDING SIDEBAR — hidden in focus mode to give the canvas full width */}
+      {!isFullscreen && (
       <div 
         className={`border-l border-white/10 bg-slate-900/60 backdrop-blur-2xl flex flex-col shadow-2xl z-40 transition-all duration-500 ease-in-out overflow-hidden`}
         style={{ width: isSidebarOpen && graphData ? '450px' : '0px', opacity: isSidebarOpen && graphData ? 1 : 0 }}
@@ -587,6 +741,7 @@ function EditorContent({ onBack }: EditorProps) {
             </>
         )}
       </div>
+      )}
     </div>
   );
 }

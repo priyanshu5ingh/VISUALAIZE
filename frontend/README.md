@@ -55,4 +55,10 @@ The backend uses the Google Generative AI (Gemini) API key; keep keys in the bac
 
 ---
 
-If you'd like, I can also merge this content into the root README or expand the frontend README with architecture diagrams and examples. 
+### ReactFlow UI Styling
+
+ReactFlow MiniMap and Controls components are customized to match the VisualAIze dark glassmorphism design system using theme-aligned colors, translucent backgrounds, and accessible hover/focus states.
+
+---
+
+If you'd like, I can also merge this content into the root README or expand the frontend README with architecture diagrams and examples.
