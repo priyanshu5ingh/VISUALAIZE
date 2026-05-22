@@ -26,9 +26,11 @@ services:
       retries: 3
       start_period: 15s
     depends_on:
-      - redis
+      redis:
+        condition: service_healthy
     networks:
       - visualaize-net
+
 
   # -----------------------------------------------------------------------
   # Redis Cache & Storage
@@ -41,8 +43,18 @@ services:
       - "6379:6379"
     volumes:
       - redis-data:/data
+    # Health check: use redis-cli PING to verify Redis is fully ready to accept
+    # connections before the backend container starts. This prevents a race
+    # condition where the backend tries to connect before Redis finishes loading.
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
     networks:
       - visualaize-net
+
 
 
   # -----------------------------------------------------------------------

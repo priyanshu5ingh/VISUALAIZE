@@ -140,3 +140,36 @@ def test_generate_graph_uses_cache(mock_ai):
     assert response2.status_code == 200
     assert mock_ai.call_count == 1
 
+
+@patch.object(main, "get_smart_response")
+def test_generate_error_does_not_leak_detail(mock_ai):
+    """Error responses must not expose raw exception messages to the client."""
+    mock_ai.side_effect = RuntimeError("Internal connection string: redis://secret@host:6379")
+    response = client.post("/generate", json={"prompt": "trigger error"})
+    assert response.status_code == 500
+    body = response.json()
+    # The raw exception text must NOT appear in the response body
+    assert "redis" not in body.get("detail", "").lower()
+    assert "secret" not in body.get("detail", "").lower()
+    assert "Internal connection string" not in body.get("detail", "")
+
+
+@patch.object(main, "get_smart_response")
+def test_chat_error_does_not_leak_detail(mock_ai):
+    """Chat error responses must not expose raw exception messages."""
+    mock_ai.side_effect = RuntimeError("Raw internal error with traceback info")
+    response = client.post("/chat", json={"message": "hi", "context": "ctx"})
+    assert response.status_code == 500
+    body = response.json()
+    assert "Raw internal error" not in body.get("detail", "")
+
+
+def test_generate_no_api_key_returns_503():
+    """Missing GENAI_KEY must return 503, not 500."""
+    original_key = main.GENAI_KEY
+    try:
+        main.GENAI_KEY = None
+        response = client.post("/generate", json={"prompt": "test"})
+        assert response.status_code == 503
+    finally:
+        main.GENAI_KEY = original_key
