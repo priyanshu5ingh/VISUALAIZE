@@ -179,8 +179,8 @@ const ZeroState = ({ onSelect }: { onSelect: (text: string) => void }) => {
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 pointer-events-auto">
           {suggestions.map((item, i) => (
-            <button key={i} onClick={() => onSelect(item.prompt)} className="focus-ring group relative p-6 rounded-2xl border border-white/10 bg-black/40 backdrop-blur-md hover:bg-blue-900/20 hover:border-blue-500/50 transition-all text-left hover:-translate-y-2 shadow-2xl overflow-hidden">
-              <div className="absolute inset-0 bg-gradient-to-b from-blue-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+            <button key={i} onClick={() => onSelect(item.prompt)} className="focus-ring group relative p-6 rounded-2xl border border-white/10 bg-black/40 backdrop-blur-xl hover:bg-indigo-900/20 hover:border-indigo-500/50 transition-all text-left hover:-translate-y-2 shadow-[0_8px_32px_rgba(0,0,0,0.37)] overflow-hidden">
+              <div className="absolute inset-0 bg-gradient-to-b from-indigo-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
               <div className="relative z-10 mb-4 p-3 w-fit rounded-lg bg-white/5 text-blue-400 group-hover:bg-blue-500 group-hover:text-white transition-colors">
                   <item.icon size={24} />
               </div>
@@ -482,8 +482,8 @@ function EditorContent({ onBack }: EditorProps) {
         {/* INPUT BAR — hidden in focus mode so the canvas extends to the bottom edge */}
         {!isFullscreen && (
         <div className="absolute bottom-10 left-1/2 -translate-x-1/2 w-[600px] z-50">
-            <form onSubmit={(e) => { e.preventDefault(); generateGraph(prompt); }} className="relative group flex items-center gap-3 p-2 pl-4 rounded-full border border-white/10 bg-black/60 backdrop-blur-xl shadow-[0_0_40px_-10px_rgba(0,0,0,0.5)] focus-within:border-blue-500/50 focus-within:ring-1 focus-within:ring-blue-500/20 transition-all">
-                <Terminal size={18} className="text-blue-400" />
+            <form onSubmit={(e) => { e.preventDefault(); generateGraph(prompt); }} className="relative group flex items-center gap-3 p-2 pl-4 rounded-full border border-white/10 bg-black/40 backdrop-blur-3xl shadow-[0_8px_32px_rgba(0,0,0,0.37)] focus-within:border-indigo-500/50 focus-within:ring-2 focus-within:ring-indigo-500/30 transition-all">
+                <Terminal size={18} className="text-indigo-400" />
                 <input type="text" placeholder="Describe a system..." value={prompt} onChange={(e) => setPrompt(e.target.value)} className="flex-1 bg-transparent text-white placeholder-slate-500 text-sm font-medium outline-none font-mono"/>
                 
                 <input type="file" ref={fileInputRef} className="hidden" accept=".txt,.json,.js,.py" onChange={handleFileUpload} />
@@ -495,7 +495,7 @@ function EditorContent({ onBack }: EditorProps) {
                     <Mic size={18} />
                 </button>
 
-                <button type="submit" disabled={isGenerating} className="px-6 py-2 rounded-full bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs tracking-widest transition-all shadow-lg shadow-blue-500/20">
+                <button type="submit" disabled={isGenerating} className="px-6 py-2 rounded-full bg-gradient-to-r from-indigo-600 to-fuchsia-600 hover:from-indigo-500 hover:to-fuchsia-500 text-white font-bold text-xs tracking-widest transition-all shadow-lg shadow-indigo-500/30 border border-white/10">
                     {isGenerating ? <span className="animate-pulse">PROCESSING</span> : "GENERATE"}
                 </button>
             </form>
@@ -506,7 +506,7 @@ function EditorContent({ onBack }: EditorProps) {
       {/* RIGHT: SLIDING SIDEBAR — hidden in focus mode to give the canvas full width */}
       {!isFullscreen && (
       <div 
-        className={`border-l border-white/10 bg-slate-900/60 backdrop-blur-2xl flex flex-col shadow-2xl z-40 transition-all duration-500 ease-in-out overflow-hidden`}
+        className={`border-l border-white/10 bg-slate-950/70 backdrop-blur-3xl flex flex-col shadow-2xl z-40 transition-all duration-500 ease-in-out overflow-hidden`}
         style={{ width: isSidebarOpen && graphData ? '450px' : '0px', opacity: isSidebarOpen && graphData ? 1 : 0 }}
       >
         {graphData && (
@@ -522,9 +522,9 @@ function EditorContent({ onBack }: EditorProps) {
             </div>
 
             <div className="flex border-b border-white/10 min-w-[450px]">
-                <button onClick={() => setActiveTab('ANALYSIS')} className={`focus-ring flex-1 py-3 text-xs font-bold tracking-wider hover:bg-white/5 transition-colors ${activeTab === 'ANALYSIS' ? 'text-blue-400 border-b-2 border-blue-400' : 'text-slate-500'}`}>ANALYSIS</button>
+                <button onClick={() => setActiveTab('ANALYSIS')} className={`focus-ring flex-1 py-3 text-xs font-bold tracking-wider hover:bg-white/5 transition-colors ${activeTab === 'ANALYSIS' ? 'text-indigo-400 border-b-2 border-indigo-400' : 'text-slate-500'}`}>ANALYSIS</button>
                 <button onClick={() => setActiveTab('CODE')} className={`focus-ring flex-1 py-3 text-xs font-bold tracking-wider hover:bg-white/5 transition-colors flex items-center justify-center gap-2 ${activeTab === 'CODE' ? 'text-emerald-400 border-b-2 border-emerald-400' : 'text-slate-500'}`}><Code size={14} /> CODE</button>
-                <button onClick={() => setActiveTab('CHAT')} className={`focus-ring flex-1 py-3 text-xs font-bold tracking-wider hover:bg-white/5 transition-colors flex items-center justify-center gap-2 ${activeTab === 'CHAT' ? 'text-purple-400 border-b-2 border-purple-400' : 'text-slate-500'}`}><MessageSquare size={14} /> AI TUTOR</button>
+                <button onClick={() => setActiveTab('CHAT')} className={`focus-ring flex-1 py-3 text-xs font-bold tracking-wider hover:bg-white/5 transition-colors flex items-center justify-center gap-2 ${activeTab === 'CHAT' ? 'text-fuchsia-400 border-b-2 border-fuchsia-400' : 'text-slate-500'}`}><MessageSquare size={14} /> AI TUTOR</button>
             </div>
 
             <div className="flex-1 overflow-y-auto p-6 space-y-6 min-w-[450px]">

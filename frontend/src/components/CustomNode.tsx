@@ -35,11 +35,11 @@ const CustomNode = ({ data, selected }: CustomNodeProps) => {
     <div 
       className={`
         relative min-w-[160px] px-4 py-3 rounded-xl 
-        backdrop-blur-xl transition-all duration-300
-        border hover:border-white/40
+        backdrop-blur-2xl transition-all duration-300
+        border hover:border-white/50
         ${selected 
-          ? `bg-slate-900/80 border-white ${glowColor} shadow-[0_0_30px_rgba(0,0,0,0.5)] scale-105` 
-          : `bg-slate-900/40 ${borderColor} hover:bg-slate-800/60`
+          ? `bg-slate-950/90 border-white ${glowColor} shadow-[0_8px_32px_rgba(0,0,0,0.5)] scale-105` 
+          : `bg-slate-900/60 ${borderColor} hover:bg-slate-800/80 hover:shadow-lg hover:-translate-y-0.5`
         }
       `}
     >

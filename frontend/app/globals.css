@@ -35,6 +35,15 @@ body {
   animation: shimmer 1.5s infinite;
 }
 
+@keyframes pulse-slow {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.8; transform: scale(1.02); }
+}
+
+.animate-pulse-slow {
+  animation: pulse-slow 4s ease-in-out infinite;
+}
+
 /* ── Branded focus ring utility ─────────────────────────────────────────────
    Apply .focus-ring to any interactive element (button, input, select, etc.)
    to get a consistent, keyboard-accessible focus indicator that matches the
