@@ -89,12 +89,13 @@ interface WindowWithSpeech extends Window {
 // This ensures we ALWAYS talk to Render, avoiding localhost confusion.
 const BACKEND_URL = "https://visualaize-backend.onrender.com"; 
 
-// --- FIXED CSS FOR GLASS BUTTONS ---
 const glassControlsStyle = `
   .react-flow__panel .react-flow__controls {
-    background: rgba(15, 23, 42, 0.6) !important;
-    border: 1px solid rgba(255, 255, 255, 0.1) !important;
-    border-radius: 8px !important;
+    background: rgba(15, 23, 42, 0.65) !important;
+    backdrop-filter: blur(12px) !important;
+    -webkit-backdrop-filter: blur(12px) !important;
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    border-radius: 12px !important;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5) !important;
     overflow: hidden !important;
   }
@@ -102,26 +103,33 @@ const glassControlsStyle = `
     background: transparent !important;
     border: none !important;
     border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
-    width: 30px !important;
-    height: 30px !important;
+    width: 32px !important;
+    height: 32px !important;
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
-    transition: background 0.2s ease !important;
+    transition: background 0.2s ease, fill 0.2s ease !important;
   }
   .react-flow__controls-button:last-child {
     border-bottom: none !important;
   }
   .react-flow__controls-button:hover {
-    background: rgba(255, 255, 255, 0.2) !important;
+    background: rgba(99, 102, 241, 0.18) !important;
   }
   .react-flow__controls-button svg {
-    fill: rgba(255, 255, 255, 0.8) !important;
+    fill: rgba(255, 255, 255, 0.95) !important;
     max-width: 14px !important;
     max-height: 14px !important;
   }
   .react-flow__controls-button:hover svg {
-    fill: #3b82f6 !important;
+    fill: #818cf8 !important;
+  }
+  .react-flow__controls-button:focus-visible {
+    position: relative !important;
+    z-index: 10 !important;
+    outline: 2px solid rgba(99, 102, 241, 0.85) !important;
+    outline-offset: -2px !important;
+    box-shadow: inset 0 0 0 2px rgba(99, 102, 241, 0.85) !important;
   }
 `;
 
@@ -447,37 +455,48 @@ function EditorContent({ onBack }: EditorProps) {
         {nodes.length === 0 && !isGenerating && <SystemLogs />}
 
         {/* MAIN GRAPH AREA */}
-<div className="flex-1 w-full h-full">
-    <ReactFlow
-        nodes={nodes}
-        edges={edges}
-        nodeTypes={nodeTypes}
-        onNodesChange={onNodesChange}
-        onEdgesChange={onEdgesChange}
-        fitView
-        minZoom={0.1}
-    >
-        <Background
-            color="#94a3b8"
-            gap={40}
-            size={1}
-            variant={BackgroundVariant.Dots}
-            className="opacity-[0.1]"
-        />
+        <div className="flex-1 w-full h-full">
+            <ReactFlow
+                nodes={nodes}
+                edges={edges}
+                nodeTypes={nodeTypes}
+                onNodesChange={onNodesChange}
+                onEdgesChange={onEdgesChange}
+                fitView
+                minZoom={0.1}
+            >
+                <Background
+                    color="#94a3b8"
+                    gap={40}
+                    size={1}
+                    variant={BackgroundVariant.Dots}
+                    className="opacity-[0.1]"
+                />
 
-        {/* Show controls only after graph generation */}
-        {nodes.length > 0 && <Controls />}
+                {/* Show controls only after graph generation */}
+                {nodes.length > 0 && <Controls />}
 
-        {/* Show minimap only after graph generation */}
-        {nodes.length > 0 && (
-            <MiniMap
-                className="!bg-slate-900/80 !backdrop-blur-md !border-slate-800 rounded-lg"
-                nodeColor="#3b82f6"
-                maskColor="rgba(15, 23, 42, 0.6)"
-            />
-        )}
-    </ReactFlow>
-</div>
+                {/* Show minimap only after graph generation */}
+                {nodes.length > 0 && (
+                    <MiniMap
+                      className="!border-white/5"
+                      nodeColor={(node) => {
+                        const label = node.data?.label?.toLowerCase() || '';
+                        if (label.includes('start')) return '#10b981'; // emerald-500
+                        if (label.includes('end') || label.includes('accept') || label.includes('final')) return '#a855f7'; // purple-500
+                        return '#6366f1'; // indigo-500
+                      }}
+                      maskColor="rgba(15, 23, 42, 0.7)"
+                      style={{
+                        backgroundColor: "rgba(15, 23, 42, 0.65)",
+                        backdropFilter: "blur(12px)",
+                        border: "1px solid rgba(255, 255, 255, 0.08)",
+                        borderRadius: "12px",
+                      }}
+                    />
+                )}
+            </ReactFlow>
+        </div>
 
         {/* INPUT BAR — hidden in focus mode so the canvas extends to the bottom edge */}
         {!isFullscreen && (
