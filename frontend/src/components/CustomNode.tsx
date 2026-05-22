@@ -1,27 +1,34 @@
 import React, { memo } from 'react';
 import { Handle, Position } from 'reactflow';
-import { Cpu, Database, Activity, ArrowRightCircle } from 'lucide-react';
+import { Database, ArrowRightCircle, Server, Globe, Cloud, Shield, Box } from 'lucide-react';
 
 interface CustomNodeProps {
-  data: { label: string };
+  data: { label: string; type?: string };
   selected?: boolean;
 }
 
 const CustomNode = ({ data, selected }: CustomNodeProps) => {
   // 1. Auto-detect the icon based on the text label
-  let Icon = Activity;
+  const label = data.label.toLowerCase();
+  const t = (data.type ?? '').toLowerCase();
+
+  let Icon = Box;
   let glowColor = "shadow-blue-500/50";
   let borderColor = "border-blue-400/30";
+  let tag = "Node";
 
-  const label = data.label.toLowerCase();
-  if (label.includes('start')) {
-    Icon = ArrowRightCircle;
-    glowColor = "shadow-emerald-500/50";
-    borderColor = "border-emerald-400/50";
-  } else if (label.includes('end') || label.includes('accept') || label.includes('final')) {
-    Icon = Database;
-    glowColor = "shadow-purple-500/50";
-    borderColor = "border-purple-400/50";
+  if (t === 'database' || label.includes('database') || label.includes('db')) {
+    Icon = Database; glowColor = "shadow-purple-500/50"; borderColor = "border-purple-400/50"; tag = "Database";
+  } else if (t === 'server' || label.includes('server') || label.includes('api') || label.includes('backend')) {
+    Icon = Server; glowColor = "shadow-orange-500/50"; borderColor = "border-orange-400/50"; tag = "Server";
+  } else if (t === 'client' || t === 'frontend' || label.includes('client') || label.includes('frontend')) {
+    Icon = Globe; glowColor = "shadow-cyan-500/50"; borderColor = "border-cyan-400/50"; tag = "Client";
+  } else if (t === 'cloud' || label.includes('cloud') || label.includes('aws')) {
+    Icon = Cloud; glowColor = "shadow-sky-500/50"; borderColor = "border-sky-400/50"; tag = "Cloud";
+  } else if (t === 'auth' || label.includes('auth') || label.includes('login')) {
+    Icon = Shield; glowColor = "shadow-green-500/50"; borderColor = "border-green-400/50"; tag = "Auth";
+  } else if (label.includes('start')) {
+    Icon = ArrowRightCircle; glowColor = "shadow-emerald-500/50"; borderColor = "border-emerald-400/50"; tag = "Start";
   }
 
   return (
@@ -51,7 +58,7 @@ const CustomNode = ({ data, selected }: CustomNodeProps) => {
         </div>
         
         <div className="flex flex-col">
-          <span className="text-[10px] uppercase tracking-widest text-slate-500 font-bold">State</span>
+          <span className="text-[10px] uppercase tracking-widest text-slate-500 font-bold">{tag}</span>
           <span className={`text-sm font-semibold tracking-wide ${selected ? 'text-white' : 'text-slate-200'}`}>
             {data.label}
           </span>
