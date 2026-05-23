@@ -137,11 +137,6 @@ export default function AboutPage() {
           </Link>
         </ScrollReveal>
       </section>
-
-      {/* --- FOOTER --- */}
-      <footer className="py-8 text-center text-slate-600 text-sm border-t border-white/5 font-mono">
-        BUILT WITH GEMINI 2.5 • NEXT.JS • REACT FLOW • THREE.JS
-      </footer>
     </div>
   );
 }
