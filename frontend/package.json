@@ -18,7 +18,7 @@
     "lucide-react": "^1.14.0",
     "maath": "^0.10.8",
     "mini-svg-data-uri": "^1.4.4",
-    "next": "16.2.6",
+    "next": "^16.2.6",
     "react": "19.2.6",
     "react-dom": "19.2.6",
     "reactflow": "^11.11.4",
@@ -26,13 +26,17 @@
     "three": "^0.184.0"
   },
   "devDependencies": {
+    "@eslint/eslintrc": "^3.3.5",
+    "@eslint/js": "^9.39.4",
+    "@next/eslint-plugin-next": "^16.2.6",
     "@tailwindcss/postcss": "^4",
     "@types/dagre": "^0.7.54",
     "@types/node": "^25",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "eslint": "^10",
+    "eslint": "^9.39.4",
     "eslint-config-next": "16.2.6",
+    "eslint-plugin-react": "^7.37.5",
     "tailwindcss": "^4",
     "typescript": "^6"
   }
