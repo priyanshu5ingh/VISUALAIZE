@@ -23,7 +23,8 @@ import {
   RefreshCw,
   Send,
   Share2, Terminal,
-  Zap
+  Zap,
+  Map as MapIcon
 } from 'lucide-react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import ReactFlow, {
@@ -86,6 +87,7 @@ interface WindowWithSpeech extends Window {
 // --- 🔧 CONFIGURATION: SINGLE SOURCE OF TRUTH ---
 // This ensures we ALWAYS talk to Render, avoiding localhost confusion.
 const BACKEND_URL = "https://visualaize-backend.onrender.com"; 
+const MOBILE_BREAKPOINT = 768;
 
 // --- FIXED CSS FOR GLASS BUTTONS ---
 const glassControlsStyle = `
@@ -209,6 +211,18 @@ function EditorContent({ onBack }: EditorProps) {
   const [isChatting, setIsChatting] = useState(false);
   
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
+  const [isMobile, setIsMobile] = useState(false);
+  const [showMiniMapOnMobile, setShowMiniMapOnMobile] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < MOBILE_BREAKPOINT);
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   const codeCache = useRef(new Map<string, codeObject>());
   const reactFlowWrapper = useRef(null);
@@ -401,12 +415,29 @@ function EditorContent({ onBack }: EditorProps) {
         {nodes.length === 0 && !isGenerating && <SystemLogs />}
 
         {/* MAIN GRAPH AREA */}
-        <div className="flex-1 w-full h-full">
+        <div className="flex-1 w-full h-full relative">
             <ReactFlow nodes={nodes} edges={edges} nodeTypes={nodeTypes} onNodesChange={onNodesChange} onEdgesChange={onEdgesChange} fitView minZoom={0.1}>
                 <Background color="#94a3b8" gap={40} size={1} variant={BackgroundVariant.Dots} className="opacity-[0.1]" />
                 <Controls /> 
-                <MiniMap className="!bg-slate-900/80 !backdrop-blur-md !border-slate-800 rounded-lg" nodeColor="#3b82f6" maskColor="rgba(15, 23, 42, 0.6)" />
+                {(!isMobile || showMiniMapOnMobile) && (
+                  <MiniMap
+                    className="!bg-slate-900/80 !backdrop-blur-md !border-slate-800 rounded-lg !opacity-85 scale-90 origin-bottom-right"
+                    nodeColor="#3b82f6"
+                    maskColor="rgba(15, 23, 42, 0.6)"
+                  />
+                )}
             </ReactFlow>
+            {isMobile && (
+              <button
+                type="button"
+                onClick={() => setShowMiniMapOnMobile(prev => !prev)}
+                className="absolute bottom-28 right-4 z-50 p-3 rounded-full bg-slate-900/80 backdrop-blur-md border border-white/10 text-slate-300 hover:text-white hover:bg-slate-800/80 shadow-lg flex items-center justify-center transition-all duration-300"
+                title={showMiniMapOnMobile ? "Hide MiniMap" : "Show MiniMap"}
+                aria-label={showMiniMapOnMobile ? "Hide MiniMap" : "Show MiniMap"}
+              >
+                <MapIcon size={18} />
+              </button>
+            )}
         </div>
 
         {/* INPUT BAR */}
