@@ -23,7 +23,7 @@ const ProductDemo = () => {
         <img
           src="/assets/after.jpg"
           alt="After"
-          className="h-full w-full object-cover"
+          className="absolute inset-0 h-full w-full object-cover"
         />
       </div>
 
@@ -43,6 +43,7 @@ const ProductDemo = () => {
         min="0"
         max="100"
         value={sliderPosition}
+        aria-label="Before and after image comparison slider"
         onChange={(e) =>
           setSliderPosition(Number(e.target.value))
         }
