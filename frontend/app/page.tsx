@@ -33,7 +33,10 @@ export default function LandingPage() {
   }
 
   return (
-    <main className="relative w-full h-screen overflow-hidden text-white font-sans bg-slate-950">
+    <main
+      className="relative w-full h-screen overflow-hidden text-white font-sans bg-slate-950"
+      aria-label="VisualAIze landing page"
+    >
       
       {/* 1. 3D Background (Controlled by state) */}
       <Hero3D isZooming={appState === 'TRANSITION'} />
@@ -83,6 +86,7 @@ export default function LandingPage() {
                     whileHover={{ scale: 1.05, boxShadow: "0 0 40px rgba(168, 85, 247, 0.6)" }}
                     whileTap={{ scale: 0.95 }}
                     onClick={handleLaunch}
+                    aria-label="Enter the VisualAIze studio"
                     className="focus-ring group relative px-8 py-4 bg-gradient-to-r from-indigo-600 to-fuchsia-600 text-white font-bold rounded-full text-lg shadow-[0_0_40px_-10px_rgba(168,85,247,0.5)] border border-white/10 hover:from-indigo-500 hover:to-fuchsia-500 transition-all flex items-center gap-3 overflow-hidden"
                   >
                     <span className="relative z-10">Enter Studio</span>

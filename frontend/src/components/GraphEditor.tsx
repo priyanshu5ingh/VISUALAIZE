@@ -472,8 +472,12 @@ console.log(
         {/* TOP BAR — hidden in focus mode to maximise canvas real-estate */}
         {!isFullscreen && (
         <div className="absolute top-0 left-0 w-full p-6 z-40 flex justify-between items-center pointer-events-none">
-          <button onClick={onBack} className="focus-ring pointer-events-auto flex items-center gap-2 text-slate-400 hover:text-white transition-colors px-4 py-2 rounded-full hover:bg-white/10 backdrop-blur-md border border-white/5 hover:border-white/20">
-            <ArrowLeft className="w-4 h-4" /> <span className="font-mono text-xs tracking-widest">TERMINAL</span>
+          <button
+            onClick={onBack}
+            aria-label="Go back to landing page"
+            className="focus-ring pointer-events-auto flex items-center gap-2 text-slate-400 hover:text-white transition-colors px-4 py-2 rounded-full hover:bg-white/10 backdrop-blur-md border border-white/5 hover:border-white/20"
+          >
+            <ArrowLeft className="w-4 h-4" aria-hidden="true" /> <span className="font-mono text-xs tracking-widest">TERMINAL</span>
           </button>
           
           <div className="flex gap-4 pointer-events-auto">
@@ -483,10 +487,12 @@ console.log(
              
              {graphData && (
                  <button 
-                    onClick={() => setIsSidebarOpen(!isSidebarOpen)} 
+                    onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+                    aria-label={isSidebarOpen ? 'Close analysis panel' : 'Open analysis panel'}
+                    aria-expanded={isSidebarOpen}
                     className="focus-ring flex items-center gap-2 px-3 py-1 rounded-full bg-slate-800/80 backdrop-blur-md border border-white/10 text-xs text-slate-300 hover:bg-blue-600 hover:text-white transition-all shadow-lg"
                  >
-                    {isSidebarOpen ? <PanelRightClose size={14} /> : <PanelRightOpen size={14} />}
+                    {isSidebarOpen ? <PanelRightClose size={14} aria-hidden="true" /> : <PanelRightOpen size={14} aria-hidden="true" />}
                     {isSidebarOpen ? 'CLOSE PANEL' : 'OPEN PANEL'}
                  </button>
              )}

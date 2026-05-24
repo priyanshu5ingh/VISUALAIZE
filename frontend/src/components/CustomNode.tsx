@@ -40,19 +40,23 @@ const CustomNode = ({ data, selected }: CustomNodeProps) => {
       <Handle 
         type="target" 
         position={Position.Left} 
+        aria-label="Input connection"
         className="!w-3 !h-3 !bg-slate-200 !border-2 !border-slate-900 shadow-[0_0_10px_white]" 
       />
 
       {/* The Node Content */}
       <div className="flex items-center gap-3">
         {/* Glowing Icon Container */}
-        <div className={`p-2 rounded-lg bg-white/5 border border-white/10 ${selected ? 'text-white' : 'text-slate-400'}`}>
+        <div
+          aria-hidden="true"
+          className={`p-2 rounded-lg bg-white/5 border border-white/10 ${selected ? 'text-white' : 'text-slate-300'}`}
+        >
           <Icon size={18} strokeWidth={1.5} />
         </div>
         
         <div className="flex flex-col">
-          <span className="text-[10px] uppercase tracking-widest text-slate-500 font-bold">State</span>
-          <span className={`text-sm font-semibold tracking-wide ${selected ? 'text-white' : 'text-slate-200'}`}>
+          <span className="text-[10px] uppercase tracking-widest text-slate-400 font-bold">State</span>
+          <span className={`text-sm font-semibold tracking-wide ${selected ? 'text-white' : 'text-slate-100'}`}>
             {data.label}
           </span>
         </div>
@@ -62,6 +66,7 @@ const CustomNode = ({ data, selected }: CustomNodeProps) => {
       <Handle 
         type="source" 
         position={Position.Right} 
+        aria-label="Output connection"
         className="!w-3 !h-3 !bg-slate-200 !border-2 !border-slate-900 shadow-[0_0_10px_white]" 
       />
       
