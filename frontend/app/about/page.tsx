@@ -139,9 +139,116 @@ export default function AboutPage() {
       </section>
 
       {/* --- FOOTER --- */}
-      <footer className="py-8 text-center text-slate-600 text-sm border-t border-white/5 font-mono">
+{/* --- PREMIUM FOOTER --- */}
+<footer className="relative border-t border-white/5 bg-gradient-to-b from-slate-950 to-black overflow-hidden">
+
+  {/* Background Glow */}
+  <div className="absolute inset-0 pointer-events-none">
+    <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[500px] h-[200px] bg-blue-500/10 blur-[120px]" />
+  </div>
+
+  <div className="relative z-10 max-w-7xl mx-auto px-6 py-7">
+
+    {/* Top Grid */}
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-14 border-b border-white/5 pb-14">
+
+      {/* LEFT SIDE */}
+      <div>
+        <div className="flex items-center gap-4 mb-6">
+
+          {/* LOGO */}
+          <div className="relative group">
+            <img
+              src="/assets/logo.png"
+              alt="VisualAIze Logo"
+              className="w-12 h-12 object-contain transition-transform duration-500 group-hover:rotate-6"
+            />
+
+            {/* Glow */}
+            <div className="absolute inset-0 bg-blue-500/20 blur-xl opacity-0 group-hover:opacity-100 transition-opacity" />
+          </div>
+
+          {/* BRAND */}
+          <div>
+            <h2 className="text-3xl font-black tracking-tight text-white">
+              VisualAIze
+            </h2>
+
+            <div className="h-[2px] w-16 bg-gradient-to-r from-blue-500 to-transparent mt-2" />
+          </div>
+        </div>
+
+        <p className="text-slate-400 text-lg leading-relaxed max-w-sm">
+          Transform ideas into intelligent visual systems.
+        </p>
+      </div>
+
+      {/* CENTER */}
+      <div>
+        <h3 className="text-blue-400 uppercase tracking-[0.2em] text-sm font-bold mb-6">
+          About Project
+        </h3>
+
+        <p className="text-slate-400 leading-relaxed text-[15px]">
+          A cutting-edge AI-powered graph visualization platform powered by Gemini 2.5,
+          designed for creating beautiful, interactive diagrams from natural language descriptions.
+        </p>
+
+        <div className="flex flex-wrap gap-3 mt-8">
+          {["Next.js", "React Flow", "Three.js", "FastAPI"].map((tech) => (
+            <span
+              key={tech}
+              className="px-3 py-1  bg-white/[0.03] text-blue-500 text-sm"
+            >
+              {tech}
+            </span>
+          ))}
+        </div>
+      </div>
+
+      {/* RIGHT SIDE */}
+      <div>
+        <h3 className="text-blue-400 uppercase tracking-[0.2em] text-sm font-bold mb-6">
+          Connect
+        </h3>
+
+        <div className="space-y-4">
+
+          <a
+            href="https://github.com/priyanshu5ingh"
+            target="_blank"
+            className="group flex items-center justify-between border-b border-white/5 pb-3 text-slate-300 hover:text-white transition"
+          >
+            <span>GitHub</span>
+            <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+          </a>
+
+          <a
+            href="https://www.linkedin.com/in/priyanshu5ingh/"
+            target="_blank"
+            className="group flex items-center justify-between border-b border-white/5 pb-3 text-slate-300 hover:text-white transition"
+          >
+            <span>LinkedIn</span>
+            <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+          </a>
+
+        </div>
+      </div>
+    </div>
+
+    {/* Bottom Bar */}
+    <div className="flex flex-col md:flex-row items-center justify-between gap-4 pt-4">
+
+      <p className="font-mono text-xs tracking-[0.25em] text-slate-500 text-center md:text-left">
         BUILT WITH GEMINI 2.5 • NEXT.JS • REACT FLOW • THREE.JS
-      </footer>
+      </p>
+
+      <p className="text-slate-500 text-md">
+        © VisualAIze All rights reserved
+      </p>
+    </div>
+  </div>
+</footer>
     </div>
   );
 }
