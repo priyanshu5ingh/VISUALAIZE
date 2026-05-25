@@ -40,10 +40,10 @@ const ProductDemo = () => {
 
       <input
         type="range"
+        aria-label="Before and after image comparison slider"
         min="0"
         max="100"
         value={sliderPosition}
-        aria-label="Before and after image comparison slider"
         onChange={(e) =>
           setSliderPosition(Number(e.target.value))
         }
