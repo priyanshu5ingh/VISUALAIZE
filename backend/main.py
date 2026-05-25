@@ -225,7 +225,7 @@ def get_smart_response(prompt_text: str, use_json: bool = False) -> str:
             logger.warning("⚠️ Invalid Argument with %s: %s", model_name, e)
             raise HTTPException(
                 status_code=400,
-                detail=f"GEMINI_BAD_REQUEST: Invalid request parameters: {e.message}"
+                detail="GEMINI_BAD_REQUEST: Invalid request parameters."
             )
         except Exception as e:
             err_msg = str(e)
@@ -241,13 +241,13 @@ def get_smart_response(prompt_text: str, use_json: bool = False) -> str:
             elif "403" in err_msg or "PERMISSION_DENIED" in err_msg:
                 raise HTTPException(status_code=403, detail="GEMINI_API_KEY_INVALID: Permission denied. Please check your Gemini API key.")
             elif "400" in err_msg or "INVALID_ARGUMENT" in err_msg:
-                raise HTTPException(status_code=400, detail=f"GEMINI_BAD_REQUEST: {err_msg}")
+                raise HTTPException(status_code=400, detail="GEMINI_BAD_REQUEST: Invalid request parameters.")
             
             logger.warning("⚠️ %s failed. Error: %s", model_name, e)
             last_error = e
             continue
             
-    raise HTTPException(status_code=500, detail=f"All models failed. Last error: {last_error}")
+    raise HTTPException(status_code=500, detail=_GENERIC_ERROR)
 
 @app.get("/")
 def health_check():
@@ -310,7 +310,7 @@ async def generate_graph(request: Request, payload: GraphRequest):
         )
     except Exception as e:
         logger.exception("Unhandled error in /generate")
-        raise HTTPException(status_code=500, detail=str(e) or _GENERIC_ERROR)
+        raise HTTPException(status_code=500, detail=_GENERIC_ERROR)
 
 
 @app.post("/chat")
@@ -326,7 +326,7 @@ async def chat_with_ai(request: Request, payload: ChatRequest):
         raise
     except Exception as e:
         logger.exception("Unhandled error in /chat")
-        raise HTTPException(status_code=500, detail=str(e) or _GENERIC_ERROR)
+        raise HTTPException(status_code=500, detail=_GENERIC_ERROR)
 
 
 @app.post("/regenerate_code")
@@ -343,4 +343,4 @@ async def regenerate_code(request: Request, payload: CodeRequest):
         raise
     except Exception as e:
         logger.exception("Unhandled error in /regenerate_code")
-        raise HTTPException(status_code=500, detail=str(e) or _GENERIC_ERROR)
+        raise HTTPException(status_code=500, detail=_GENERIC_ERROR)
