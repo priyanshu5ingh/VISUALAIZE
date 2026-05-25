@@ -23,7 +23,7 @@ const ProductDemo = () => {
         <img
           src="/assets/after.jpg"
           alt="After"
-          className="absolute inset-0 h-full w-full object-cover"
+          className="absolute inset-0 h-full w-full object-cover max-w-none"
         />
       </div>
 
