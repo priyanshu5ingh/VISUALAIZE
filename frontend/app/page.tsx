@@ -33,7 +33,10 @@ export default function LandingPage() {
   }
 
   return (
-    <main className="relative w-full h-screen overflow-hidden text-white font-sans bg-slate-950">
+    <main
+      className="relative w-full h-screen overflow-hidden text-white font-sans bg-slate-950"
+      aria-label="VisualAIze landing page"
+    >
       
       {/* 1. 3D Background (Controlled by state) */}
       <Hero3D isZooming={appState === 'TRANSITION'} />
@@ -59,20 +62,20 @@ export default function LandingPage() {
               {/* Badge */}
               <motion.div 
                 whileHover={{ scale: 1.05 }}
-                className="inline-block px-4 py-1.5 mb-6 text-xs font-bold tracking-widest text-blue-200 uppercase bg-blue-500/10 rounded-full border border-blue-500/20 backdrop-blur-md shadow-[0_0_15px_rgba(59,130,246,0.3)]"
+                className="inline-block px-4 py-1.5 mb-6 text-xs font-bold tracking-widest text-indigo-200 uppercase bg-indigo-500/10 rounded-full border border-indigo-500/30 backdrop-blur-md shadow-[0_0_25px_rgba(99,102,241,0.4)]"
               >
                 Gemini 2.5 Neural Engine
               </motion.div>
               
               {/* Title */}
-              <h1 className="text-8xl font-black tracking-tighter mb-6 bg-clip-text text-transparent bg-gradient-to-br from-white via-blue-100 to-indigo-400 drop-shadow-2xl">
+              <h1 className="text-8xl font-black tracking-tighter mb-6 bg-clip-text text-transparent bg-gradient-to-br from-white via-indigo-200 to-fuchsia-500 drop-shadow-[0_0_30px_rgba(168,85,247,0.3)]">
                 VisualAIze
               </h1>
               
               {/* Subtitle */}
               <p className="max-w-2xl mx-auto text-xl text-slate-300 mb-12 leading-relaxed font-light">
                 Visualize logic at the speed of thought. <br/>
-                <span className="text-blue-400 font-medium">No drag. No drop. Just dream.</span>
+                <span className="text-indigo-400 font-medium">No drag. No drop. Just dream.</span>
               </p>
 
               {/* BUTTON GROUP */}
@@ -80,14 +83,15 @@ export default function LandingPage() {
                   
                   {/* EXISTING LAUNCH BUTTON (Primary) */}
                   <motion.button
-                    whileHover={{ scale: 1.05, boxShadow: "0 0 30px rgba(79, 70, 229, 0.6)" }}
+                    whileHover={{ scale: 1.05, boxShadow: "0 0 40px rgba(168, 85, 247, 0.6)" }}
                     whileTap={{ scale: 0.95 }}
                     onClick={handleLaunch}
-                    className="focus-ring group relative px-8 py-4 bg-white text-slate-950 font-bold rounded-full text-lg shadow-[0_0_50px_-10px_rgba(255,255,255,0.4)] hover:bg-slate-100 transition-all flex items-center gap-3 overflow-hidden"
+                    aria-label="Enter the VisualAIze studio"
+                    className="focus-ring group relative px-8 py-4 bg-gradient-to-r from-indigo-600 to-fuchsia-600 text-white font-bold rounded-full text-lg shadow-[0_0_40px_-10px_rgba(168,85,247,0.5)] border border-white/10 hover:from-indigo-500 hover:to-fuchsia-500 transition-all flex items-center gap-3 overflow-hidden"
                   >
                     <span className="relative z-10">Enter Studio</span>
                     <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform relative z-10" />
-                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/50 to-transparent -translate-x-full group-hover:animate-shimmer" />
+                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:animate-shimmer" />
                   </motion.button>
 
                   {/* NEW "ABOUT" BUTTON (Secondary) */}
@@ -117,21 +121,21 @@ export default function LandingPage() {
             transition={{ delay: 0.5, duration: 1 }}
             className="absolute bottom-4 w-full px-10 z-20 flex justify-center gap-16 text-slate-400 pointer-events-none"
           >
-            <div className="flex flex-col items-center gap-2 group">
-              <div className="p-3 rounded-full bg-slate-900/50 border border-slate-800 group-hover:border-yellow-500/50 transition-colors">
+            <div className="flex flex-col items-center gap-2 group pointer-events-auto">
+              <div className="p-3 rounded-full bg-slate-900/60 backdrop-blur-md border border-slate-700/50 group-hover:border-yellow-500/50 group-hover:shadow-[0_0_20px_rgba(234,179,8,0.3)] transition-all">
                 <Zap className="w-6 h-6 text-yellow-400" />
               </div>
               <span className="text-xs font-semibold tracking-wider uppercase">Instant</span>
             </div>
-            <div className="flex flex-col items-center gap-2 group">
-              <div className="p-3 rounded-full bg-slate-900/50 border border-slate-800 group-hover:border-blue-500/50 transition-colors">
-                <Cpu className="w-6 h-6 text-blue-400" />
+            <div className="flex flex-col items-center gap-2 group pointer-events-auto">
+              <div className="p-3 rounded-full bg-slate-900/60 backdrop-blur-md border border-slate-700/50 group-hover:border-indigo-500/50 group-hover:shadow-[0_0_20px_rgba(99,102,241,0.3)] transition-all">
+                <Cpu className="w-6 h-6 text-indigo-400" />
               </div>
               <span className="text-xs font-semibold tracking-wider uppercase">Neural</span>
             </div>
-            <div className="flex flex-col items-center gap-2 group">
-              <div className="p-3 rounded-full bg-slate-900/50 border border-slate-800 group-hover:border-purple-500/50 transition-colors">
-                <Share2 className="w-6 h-6 text-purple-400" />
+            <div className="flex flex-col items-center gap-2 group pointer-events-auto">
+              <div className="p-3 rounded-full bg-slate-900/60 backdrop-blur-md border border-slate-700/50 group-hover:border-fuchsia-500/50 group-hover:shadow-[0_0_20px_rgba(217,70,239,0.3)] transition-all">
+                <Share2 className="w-6 h-6 text-fuchsia-400" />
               </div>
               <span className="text-xs font-semibold tracking-wider uppercase">Export</span>
             </div>

@@ -2,30 +2,12 @@
 'use client';
 
 import { toPng } from 'html-to-image';
-import {
-  Activity,
-  ArrowLeft,
-  BookOpen,
-  Box,
-  Check,
-  ChevronDown,
-  Code, Copy,
-  Download,
-  GitBranch,
-  Globe,
-  Layers,
-  Maximize2,
-  MessageSquare,
-  Mic,
-  Minimize2,
-  Network,
-  PanelRightClose, PanelRightOpen,
-  Paperclip,
-  PlayCircle,
-  RefreshCw,
-  Send,
-  Share2, Terminal,
-  Zap
+import { getLayoutedElements } from '../utils/layout'; 
+import { 
+  ArrowLeft, Box, GitBranch, Network, Share2, Terminal, 
+  Activity, BookOpen, PlayCircle, Layers, Code, Copy, Check, Zap, 
+  Globe, Mic, Download, ChevronDown, MessageSquare, Send, Paperclip, 
+  PanelRightClose, PanelRightOpen, AlertTriangle, ArrowRight, X, RefreshCw
 } from 'lucide-react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import ReactFlow, {
@@ -42,8 +24,8 @@ import ReactFlow, {
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import CustomNode from '../components/CustomNode';
-import { getLayoutedElements } from '../utils/layout';
 import HolographicScene from './HolographicScene';
+import ErrorModal from './ErrorModal';
 import LoadingCore from './LoadingCore';
 import LoadingOverlay from './LoadingOverlay';
 
@@ -87,7 +69,7 @@ interface WindowWithSpeech extends Window {
 
 // --- 🔧 CONFIGURATION: SINGLE SOURCE OF TRUTH ---
 // This ensures we ALWAYS talk to Render, avoiding localhost confusion.
-const BACKEND_URL = "https://visualaize-backend.onrender.com"; 
+const BACKEND_URL = "https://visualaize-backend.onrender.com";
 
 const glassControlsStyle = `
   .react-flow__panel .react-flow__controls {
@@ -187,9 +169,9 @@ const ZeroState = ({ onSelect }: { onSelect: (text: string) => void }) => {
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 pointer-events-auto">
           {suggestions.map((item, i) => (
-            <button key={i} onClick={() => onSelect(item.prompt)} className="focus-ring group relative p-6 rounded-2xl border border-white/10 bg-black/40 backdrop-blur-md hover:bg-blue-900/20 hover:border-blue-500/50 transition-all text-left hover:-translate-y-2 shadow-2xl overflow-hidden">
-              <div className="absolute inset-0 bg-gradient-to-b from-blue-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-              <div className="relative z-10 mb-4 p-3 w-fit rounded-lg bg-white/5 text-blue-400 group-hover:bg-blue-500 group-hover:text-white transition-colors">
+            <button key={i} onClick={() => onSelect(item.prompt)} className="focus-ring group relative p-6 rounded-2xl border border-white/10 bg-black/40 backdrop-blur-2xl hover:bg-indigo-900/20 hover:border-indigo-500/50 transition-all text-left hover:-translate-y-2 shadow-[0_8px_32px_rgba(0,0,0,0.37)] overflow-hidden">
+              <div className="absolute inset-0 bg-gradient-to-b from-indigo-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+              <div className="relative z-10 mb-4 p-3 w-fit rounded-lg bg-white/5 text-indigo-400 group-hover:bg-indigo-500 group-hover:text-white transition-colors">
                   <item.icon size={24} />
               </div>
               <h3 className="relative z-10 text-lg font-bold text-white mb-1">{item.label}</h3>
@@ -220,6 +202,13 @@ function EditorContent({ onBack }: EditorProps) {
   const [isChatting, setIsChatting] = useState(false);
   
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [errorState, setErrorState] = useState<{
+    show: boolean;
+    title: string;
+    message: string;
+    type: 'missing_key' | 'invalid_key' | 'rate_limit' | 'bad_request' | 'generic';
+    onRetry?: () => void;
+  } | null>(null);
 
   /**
    * Controls the fullscreen/focus mode for the ReactFlow canvas.
@@ -274,9 +263,44 @@ function EditorContent({ onBack }: EditorProps) {
       });
       
       if (!res.ok) {
-        const errText = await res.text();
-        console.error("❌ [BACKEND ERROR]:", res.status, errText);
-        throw new Error(`Server Error (${res.status}): ${errText}`);
+        let errDetail = "";
+        const bodyText = await res.text();
+        try {
+          const errJson = JSON.parse(bodyText);
+          errDetail = errJson.detail || bodyText;
+        } catch {
+          errDetail = bodyText;
+        }
+        
+        console.error("❌ [BACKEND ERROR]:", res.status, errDetail);
+
+        let errorTitle = "System Error";
+        let errorMsg = "An unexpected error occurred. Please try again.";
+        let errorType: 'missing_key' | 'invalid_key' | 'rate_limit' | 'bad_request' | 'generic' = 'generic';
+
+        if (errDetail.includes("GEMINI_API_KEY_MISSING") || (res.status === 401 && errDetail.toLowerCase().includes("missing"))) {
+          errorTitle = "API Key Missing";
+          errorMsg = "Please configure your Gemini API key in the backend .env file.";
+          errorType = "missing_key";
+        } else if (errDetail.includes("GEMINI_API_KEY_INVALID") || res.status === 403 || res.status === 401) {
+          errorTitle = "Invalid API Key";
+          errorMsg = "Please check your Gemini API key configuration. The current key is invalid or unauthorized.";
+          errorType = "invalid_key";
+        } else if (errDetail.includes("GEMINI_RATE_LIMIT_EXCEEDED") || res.status === 429) {
+          errorTitle = "Rate Limit Exceeded";
+          errorMsg = "Gemini API rate limit or quota exceeded. Please wait a moment and try again.";
+          errorType = "rate_limit";
+        } else if (errDetail.includes("GEMINI_BAD_REQUEST") || res.status === 400) {
+          errorTitle = "Invalid Request";
+          errorMsg = errDetail.replace("GEMINI_BAD_REQUEST: ", "") || "The AI model could not process this request.";
+          errorType = "bad_request";
+        } else {
+          errorTitle = "Model Execution Failure";
+          errorMsg = errDetail || "The models failed to process the request.";
+          errorType = "generic";
+        }
+
+        throw { title: errorTitle, message: errorMsg, type: errorType };
       }
       
       const data = await res.json();
@@ -304,9 +328,19 @@ function EditorContent({ onBack }: EditorProps) {
       console.log("LAYOUTED EDGES:", layoutedEdges.length);
       setIsSidebarOpen(true); 
 
-    } catch (err) {
+    } catch (err: any) {
       console.error("🚨 [CRITICAL ERROR]:", err);
-      alert(`System Busy. Please check the console for the exact error.\n\nDetails: ${err}`);
+      const title = err.title || "Connection Failed";
+      const message = err.message || `Could not connect to the visualization server. Details: ${err}`;
+      const type = err.type || "generic";
+
+      setErrorState({
+        show: true,
+        title,
+        message,
+        type,
+        onRetry: () => generateGraph(text)
+      });
     } finally {
       setIsGenerating(false);
     }
@@ -319,22 +353,50 @@ function EditorContent({ onBack }: EditorProps) {
       const res = await fetch(`${BACKEND_URL}/regenerate_code`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt: prompt, language: newLang }),
       });
+      if (!res.ok) {
+        let errDetail = "";
+        const bodyText = await res.text();
+        try {
+          const errJson = JSON.parse(bodyText);
+          errDetail = errJson.detail || bodyText;
+        } catch {
+          errDetail = bodyText;
+        }
+        
+        let errorTitle = "System Error";
+        let errorMsg = "Failed to rewrite code.";
+        let errorType: 'missing_key' | 'invalid_key' | 'rate_limit' | 'bad_request' | 'generic' = 'generic';
+
+        if (errDetail.includes("GEMINI_API_KEY_MISSING") || (res.status === 401 && errDetail.toLowerCase().includes("missing"))) {
+          errorTitle = "API Key Missing";
+          errorMsg = "Please configure your Gemini API key in the backend .env file.";
+          errorType = "missing_key";
+        } else if (errDetail.includes("GEMINI_API_KEY_INVALID") || res.status === 403 || res.status === 401) {
+          errorTitle = "Invalid API Key";
+          errorMsg = "Please check your Gemini API key configuration. The current key is invalid or unauthorized.";
+          errorType = "invalid_key";
+        } else if (errDetail.includes("GEMINI_RATE_LIMIT_EXCEEDED") || res.status === 429) {
+          errorTitle = "Rate Limit Exceeded";
+          errorMsg = "Gemini API rate limit or quota exceeded. Please wait a moment and try again.";
+          errorType = "rate_limit";
+        }
+
+        throw { title: errorTitle, message: errorMsg, type: errorType };
+      }
       const data = await res.json();
       setGraphData((prev: GraphData | null) => prev ? ({ ...prev, code_snippet: data.code_snippet, code_explanation: data.code_explanation }) : prev);
-      if (data) codeCache.current.set(newLang, {code_snippet: data.code_snippet ?? '', code_explanation: data.code_explanation ?? ''})
-    } catch (err) { alert("Failed to rewrite code."); } finally { setIsRegeneratingCode(false); }
-  } 
-
-  const handleLanguageChange = async (newLang: string) => {
-    setshowLanguageDropDown(false);
-    if (newLang === codeLanguage || !graphData) return;
-    if (codeCache.current.has(newLang)){
-      setCodeLanguage(newLang);
-      const cachedCodeData = codeCache.current.get(newLang);
-      setGraphData((prev: GraphData | null) => prev && cachedCodeData ? ({ ...prev, code_snippet: cachedCodeData.code_snippet, code_explanation: cachedCodeData.code_explanation }) : prev);
-      return; 
-    }
-    regenerateCode(newLang);
+    } catch (err: any) { 
+      const title = err.title || "Rewriting Failed";
+      const message = err.message || "Failed to rewrite code.";
+      const type = err.type || "generic";
+      setErrorState({
+        show: true,
+        title,
+        message,
+        type,
+        onRetry: () => regenerateCode(newLang)
+      });
+    } finally { setIsRegeneratingCode(false); }
   };
 
   const handleChatSubmit = async (e: React.FormEvent) => {
@@ -472,8 +534,12 @@ console.log(
         {/* TOP BAR — hidden in focus mode to maximise canvas real-estate */}
         {!isFullscreen && (
         <div className="absolute top-0 left-0 w-full p-6 z-40 flex justify-between items-center pointer-events-none">
-          <button onClick={onBack} className="focus-ring pointer-events-auto flex items-center gap-2 text-slate-400 hover:text-white transition-colors px-4 py-2 rounded-full hover:bg-white/10 backdrop-blur-md border border-white/5 hover:border-white/20">
-            <ArrowLeft className="w-4 h-4" /> <span className="font-mono text-xs tracking-widest">TERMINAL</span>
+          <button
+            onClick={onBack}
+            aria-label="Go back to landing page"
+            className="focus-ring pointer-events-auto flex items-center gap-2 text-slate-400 hover:text-white transition-colors px-4 py-2 rounded-full hover:bg-white/10 backdrop-blur-md border border-white/5 hover:border-white/20"
+          >
+            <ArrowLeft className="w-4 h-4" aria-hidden="true" /> <span className="font-mono text-xs tracking-widest">TERMINAL</span>
           </button>
           
           <div className="flex gap-4 pointer-events-auto">
@@ -483,10 +549,12 @@ console.log(
              
              {graphData && (
                  <button 
-                    onClick={() => setIsSidebarOpen(!isSidebarOpen)} 
+                    onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+                    aria-label={isSidebarOpen ? 'Close analysis panel' : 'Open analysis panel'}
+                    aria-expanded={isSidebarOpen}
                     className="focus-ring flex items-center gap-2 px-3 py-1 rounded-full bg-slate-800/80 backdrop-blur-md border border-white/10 text-xs text-slate-300 hover:bg-blue-600 hover:text-white transition-all shadow-lg"
                  >
-                    {isSidebarOpen ? <PanelRightClose size={14} /> : <PanelRightOpen size={14} />}
+                    {isSidebarOpen ? <PanelRightClose size={14} aria-hidden="true" /> : <PanelRightOpen size={14} aria-hidden="true" />}
                     {isSidebarOpen ? 'CLOSE PANEL' : 'OPEN PANEL'}
                  </button>
              )}
@@ -563,8 +631,8 @@ console.log(
         {/* INPUT BAR — hidden in focus mode so the canvas extends to the bottom edge */}
         {!isFullscreen && (
         <div className="absolute bottom-10 left-1/2 -translate-x-1/2 w-[600px] z-50">
-            <form onSubmit={(e) => { e.preventDefault(); generateGraph(prompt); }} className="relative group flex items-center gap-3 p-2 pl-4 rounded-full border border-white/10 bg-black/60 backdrop-blur-xl shadow-[0_0_40px_-10px_rgba(0,0,0,0.5)] focus-within:border-blue-500/50 focus-within:ring-1 focus-within:ring-blue-500/20 transition-all">
-                <Terminal size={18} className="text-blue-400" />
+            <form onSubmit={(e) => { e.preventDefault(); generateGraph(prompt); }} className="relative group flex items-center gap-3 p-2 pl-4 rounded-full border border-white/10 bg-black/40 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.37)] focus-within:border-indigo-500/50 focus-within:ring-2 focus-within:ring-indigo-500/30 transition-all">
+                <Terminal size={18} className="text-indigo-400" />
                 <input type="text" placeholder="Describe a system..." value={prompt} onChange={(e) => setPrompt(e.target.value)} className="flex-1 bg-transparent text-white placeholder-slate-500 text-sm font-medium outline-none font-mono"/>
                 
                 <input type="file" ref={fileInputRef} className="hidden" accept=".txt,.json,.js,.py" onChange={handleFileUpload} />
@@ -576,7 +644,7 @@ console.log(
                     <Mic size={18} />
                 </button>
 
-                <button type="submit" disabled={isGenerating} className="px-6 py-2 rounded-full bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs tracking-widest transition-all shadow-lg shadow-blue-500/20">
+                <button type="submit" disabled={isGenerating} className="px-6 py-2 rounded-full bg-gradient-to-r from-indigo-600 to-fuchsia-600 hover:from-indigo-500 hover:to-fuchsia-500 text-white font-bold text-xs tracking-widest transition-all shadow-lg shadow-indigo-500/30 border border-white/10">
                     {isGenerating ? <span className="animate-pulse">PROCESSING</span> : "GENERATE"}
                 </button>
             </form>
@@ -587,7 +655,7 @@ console.log(
       {/* RIGHT: SLIDING SIDEBAR — hidden in focus mode to give the canvas full width */}
       {!isFullscreen && (
       <div 
-        className={`border-l border-white/10 bg-slate-900/60 backdrop-blur-2xl flex flex-col shadow-2xl z-40 transition-all duration-500 ease-in-out overflow-hidden`}
+        className={`border-l border-white/10 bg-slate-950/70 backdrop-blur-2xl flex flex-col shadow-2xl z-40 transition-all duration-500 ease-in-out overflow-hidden`}
         style={{ width: isSidebarOpen && graphData ? '450px' : '0px', opacity: isSidebarOpen && graphData ? 1 : 0 }}
       >
         {graphData && (
@@ -603,9 +671,9 @@ console.log(
             </div>
 
             <div className="flex border-b border-white/10 min-w-[450px]">
-                <button onClick={() => setActiveTab('ANALYSIS')} className={`focus-ring flex-1 py-3 text-xs font-bold tracking-wider hover:bg-white/5 transition-colors ${activeTab === 'ANALYSIS' ? 'text-blue-400 border-b-2 border-blue-400' : 'text-slate-500'}`}>ANALYSIS</button>
+                <button onClick={() => setActiveTab('ANALYSIS')} className={`focus-ring flex-1 py-3 text-xs font-bold tracking-wider hover:bg-white/5 transition-colors ${activeTab === 'ANALYSIS' ? 'text-indigo-400 border-b-2 border-indigo-400' : 'text-slate-500'}`}>ANALYSIS</button>
                 <button onClick={() => setActiveTab('CODE')} className={`focus-ring flex-1 py-3 text-xs font-bold tracking-wider hover:bg-white/5 transition-colors flex items-center justify-center gap-2 ${activeTab === 'CODE' ? 'text-emerald-400 border-b-2 border-emerald-400' : 'text-slate-500'}`}><Code size={14} /> CODE</button>
-                <button onClick={() => setActiveTab('CHAT')} className={`focus-ring flex-1 py-3 text-xs font-bold tracking-wider hover:bg-white/5 transition-colors flex items-center justify-center gap-2 ${activeTab === 'CHAT' ? 'text-purple-400 border-b-2 border-purple-400' : 'text-slate-500'}`}><MessageSquare size={14} /> AI TUTOR</button>
+                <button onClick={() => setActiveTab('CHAT')} className={`focus-ring flex-1 py-3 text-xs font-bold tracking-wider hover:bg-white/5 transition-colors flex items-center justify-center gap-2 ${activeTab === 'CHAT' ? 'text-fuchsia-400 border-b-2 border-fuchsia-400' : 'text-slate-500'}`}><MessageSquare size={14} /> AI TUTOR</button>
             </div>
 
             <div className="flex-1 overflow-y-auto p-6 space-y-6 min-w-[450px]">
@@ -656,7 +724,7 @@ console.log(
                               {['Python', 'JavaScript', 'C++', 'Java'].map(lang => (
                                 <button 
                                   key={lang} 
-                                  onClick={() => handleLanguageChange(lang)} 
+                                  onClick={() => { regenerateCode(lang); setshowLanguageDropDown(false); }} 
                                   className="focus-ring w-full text-left px-4 py-2 text-xs text-slate-300 hover:bg-blue-600 hover:text-white transition-colors first:border-b-0"
                                 >
                                       {lang}
@@ -741,6 +809,19 @@ console.log(
             </>
         )}
       </div>
+      {errorState && (
+        <ErrorModal 
+          show={errorState.show}
+          title={errorState.title}
+          message={errorState.message}
+          type={errorState.type}
+          onRetry={() => {
+            const retryFn = errorState.onRetry;
+            setErrorState(null);
+            if (retryFn) retryFn();
+          }}
+          onClose={() => setErrorState(null)} 
+        />
       )}
     </div>
   );

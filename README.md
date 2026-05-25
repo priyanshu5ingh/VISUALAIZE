@@ -34,25 +34,33 @@
   </tr>
   <tr>
     <td align="center" width="50%">
-      <h3>🎭 3D Holographic Interface</h3>
-      <p>Immersive 3D background with animated core and cinematic lighting effects</p>
+      <h3>⚡ Viewport-Based Rendering</h3>
+      <p>Only renders nodes and edges visible in the current viewport, improving performance for large graphs and ensuring smooth interaction even with thousands of elements</p>
     </td>
     <td align="center" width="50%">
-      <h3>📊 Multiple Diagram Types</h3>
-      <p>DFA, Neural Networks, Flowcharts, Mind Maps, System Architectures & More</p>
+      <h3>🎭 3D Holographic Interface</h3>
+      <p>Immersive 3D background with animated core and cinematic lighting effects</p>
     </td>
   </tr>
   <tr>
     <td align="center" width="50%">
+      <h3>📊 Multiple Diagram Types</h3>
+      <p>DFA, Neural Networks, Flowcharts, Mind Maps, System Architectures & More</p>
+    </td>
+    <td align="center" width="50%">
       <h3>🎬 Smooth Animations</h3>
       <p>Frame-motion powered transitions and holographic loading effects</p>
     </td>
+  </tr>
+  <tr>
     <td align="center" width="50%">
       <h3>💾 Export Options</h3>
       <p>Download your diagrams as PNG images for presentations and documentation</p>
     </td>
   </tr>
 </table>
+
+---
 
 ---
 

@@ -51,12 +51,13 @@ def test_generate_graph_returns_expected_shape(mock_ai):
     # Mock the AI response string (JSON format)
     mock_ai.return_value = json.dumps(MOCK_GRAPH)
     
-    response = client.post("/generate", json={"prompt": "test prompt"})
-    assert response.status_code == 200
-    data = response.json()
-    assert data["title"] == "Test Graph"
-    assert "nodes" in data
-    assert len(data["nodes"]) == 1
+    with patch("main.GENAI_KEY", "mock_key_for_testing"):
+        response = client.post("/generate", json={"prompt": "test prompt"})
+        assert response.status_code == 200
+        data = response.json()
+        assert data["title"] == "Test Graph"
+        assert "nodes" in data
+        assert len(data["nodes"]) == 1
 
 def test_generate_graph_missing_prompt():
     """POST /generate without prompt should return 422 Unprocessable Entity."""

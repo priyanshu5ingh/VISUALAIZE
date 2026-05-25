@@ -34,7 +34,7 @@ function LiquidCore({ isZooming }: { isZooming: boolean }) {
 
   return (
     <Float speed={2} rotationIntensity={0.5} floatIntensity={1}>
-      <Sphere args={[1, 64, 64]} ref={meshRef}>
+      <Sphere args={[1, 32, 32]} ref={meshRef}>
         <MeshDistortMaterial
           color="#4f46e5" // Indigo Core
           attach="material"
@@ -66,7 +66,7 @@ function BackgroundStars({ isZooming }: { isZooming: boolean }) {
 
   return (
     <group ref={starsRef}>
-      <Stars radius={100} depth={50} count={5000} factor={4} saturation={0} fade speed={1} />
+      <Stars radius={100} depth={50} count={2000} factor={4} saturation={0} fade speed={1} />
     </group>
   );
 }
@@ -74,7 +74,7 @@ function BackgroundStars({ isZooming }: { isZooming: boolean }) {
 export default function Hero3D({ isZooming }: { isZooming: boolean }) {
   return (
     <div className="absolute inset-0 z-0 bg-slate-950">
-      <Canvas camera={{ position: [0, 0, 5], fov: 45 }}>
+      <Canvas dpr={[1, 1.5]} camera={{ position: [0, 0, 5], fov: 45 }}>
         {/* Cinematic Lighting */}
         <ambientLight intensity={0.5} />
         <pointLight position={[10, 10, 10]} intensity={1.5} color="#818cf8" />

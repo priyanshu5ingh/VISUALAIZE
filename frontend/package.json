@@ -38,6 +38,7 @@
     "eslint-config-next": "16.2.6",
     "eslint-plugin-react": "^7.37.5",
     "tailwindcss": "^4",
+    "tailwindcss-animate": "^1.0.7",
     "typescript": "^6"
   }
 }
