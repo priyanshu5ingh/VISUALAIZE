@@ -199,9 +199,12 @@ function EditorContent({ onBack }: EditorProps) {
   const [isRegeneratingCode, setIsRegeneratingCode] = useState(false);
   const [chatHistory, setChatHistory] = useState<{role: 'user' | 'ai', text: string}[]>([]);
   const [chatInput, setChatInput] = useState('');
+  const [users, setUsers] = useState<string[]>([]);
   const [isChatting, setIsChatting] = useState(false);
   
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const clientId = useRef(crypto.randomUUID());
+  const roomId = useRef("room_1");
   const [errorState, setErrorState] = useState<{
     show: boolean;
     title: string;
@@ -210,6 +213,7 @@ function EditorContent({ onBack }: EditorProps) {
     onRetry?: () => void;
   } | null>(null);
 
+  const [cursors, setCursors] = useState<Record<string, { x: number; y: number }>>({});
   /**
    * Controls the fullscreen/focus mode for the ReactFlow canvas.
    * When `true`, the top navigation bar, bottom input bar, and right
@@ -229,10 +233,41 @@ function EditorContent({ onBack }: EditorProps) {
 }), []);
 
   const edgeTypes = useMemo(() => ({}), []);
-  const onNodesChange: OnNodesChange = useCallback((changes) => setNodes((nds) => applyNodeChanges(changes, nds)), []);
-  const onEdgesChange: OnEdgesChange = useCallback((changes) => setEdges((eds) => applyEdgeChanges(changes, eds)), []);
+  const onNodesChange: OnNodesChange = useCallback((changes) => {
+  setNodes((nds) => {
+    const updatedNodes = applyNodeChanges(changes, nds);
+
+    if (socketRef.current?.readyState === WebSocket.OPEN) {
+  socketRef.current.send(JSON.stringify({
+    type: "NODE_MOVE",
+    clientId: clientId.current,
+    nodes: updatedNodes
+  }));
+}
+    return updatedNodes;
+  });
+}, [edges]);
+  
+  const onEdgesChange: OnEdgesChange = useCallback((changes) => {
+  setEdges((eds) => {
+    const updatedEdges = applyEdgeChanges(changes, eds);
+
+    if (socketRef.current?.readyState === WebSocket.OPEN) {
+      socketRef.current.send(
+        JSON.stringify({
+          type: "SYNC_GRAPH",
+          nodes,
+          edges: updatedEdges,
+        })
+      );
+    }
+
+    return updatedEdges;
+  });
+}, [nodes]);
 
   const rafRef = useRef<number | null>(null);
+  const socketRef = useRef<WebSocket | null>(null);
 
   const onMove = useCallback((_: any, vp: any) => {
   if (rafRef.current) cancelAnimationFrame(rafRef.current);
@@ -345,6 +380,14 @@ function EditorContent({ onBack }: EditorProps) {
       setIsGenerating(false);
     }
   };
+  
+  const EVENT_TYPES = {
+  NODE_MOVE: "NODE_MOVE",
+  NODE_ADD: "NODE_ADD",
+  NODE_DELETE: "NODE_DELETE",
+  EDGE_ADD: "EDGE_ADD",
+  EDGE_DELETE: "EDGE_DELETE"
+};
 
   const regenerateCode = async (newLang: string) => {
     setCodeLanguage(newLang);
@@ -506,6 +549,88 @@ console.log(
    * `true` and is cleaned up on unmount or when the flag changes,
    * preventing stale closures and unnecessary event handling.
    */
+
+  useEffect(() => {
+  const handleMouseMove = (e: MouseEvent) => {
+    if (socketRef.current?.readyState !== WebSocket.OPEN) return;
+
+    socketRef.current.send(JSON.stringify({
+      type: "CURSOR_MOVE",
+      clientId: clientId.current,
+      roomId: roomId.current,
+      position: {
+        x: e.clientX,
+        y: e.clientY
+      }
+    }));
+  };
+
+  window.addEventListener("mousemove", handleMouseMove);
+
+  return () => window.removeEventListener("mousemove", handleMouseMove);
+}, []);
+
+  useEffect(() => {
+  const socket = new WebSocket("ws://localhost:8000/ws");
+
+  socketRef.current = socket;
+
+  socket.onopen = () => {
+    console.log("Connected");
+
+    socket.send(JSON.stringify({
+  type: "USER_JOIN",
+  roomId: roomId.current,
+  clientId: clientId.current
+}));
+  };
+
+  socket.onmessage = (event) => {
+    const data = JSON.parse(event.data);
+    console.log("SOCKET EVENT:", event.data);
+
+    if (data.type === "NODE_MOVE") {
+      if (data.clientId === clientId.current) return;
+
+      setNodes((nds) =>
+        nds.map((node) =>
+          node.id === data.nodeId
+            ? { ...node, position: data.position }
+            : node
+        )
+      );
+    }
+
+    if (data.type === "SYNC_GRAPH") {
+      setNodes(data.nodes);
+      setEdges(data.edges);
+    }
+
+    if (data.type === "ROOM_USERS") {
+  setUsers(data.users);
+}
+  
+
+    if (data.type === "CURSOR_MOVE") {
+  const roomId = data.roomId;
+
+  setCursors((prev) => ({
+    ...prev,
+    [data.clientId]: data.position
+  }));
+}
+
+  };
+
+  socket.onclose = () => {
+    console.log("Disconnected");
+  };
+
+  return () => {
+    socket.close();
+  };
+}, []);
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && isFullscreen) setIsFullscreen(false);
@@ -515,6 +640,7 @@ console.log(
   }, [isFullscreen]);
 
   return (
+
     <div className="relative flex h-screen w-screen bg-black overflow-hidden font-sans text-slate-200">
       
       {/* 0. INJECT CSS FOR CONTROLS */}
@@ -546,7 +672,7 @@ console.log(
              <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-slate-900/60 backdrop-blur-md border border-white/10 text-xs font-mono text-emerald-400 shadow-lg">
                 <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"/> ONLINE
              </div>
-             
+
              {graphData && (
                  <button 
                     onClick={() => setIsSidebarOpen(!isSidebarOpen)}
@@ -561,6 +687,23 @@ console.log(
           </div>
         </div>
         )}
+
+        <div className="p-3 border-b border-white/10">
+  <div className="text-xs font-bold text-slate-400 mb-2">
+    ONLINE USERS
+  </div>
+
+  <div className="space-y-1">
+    {users.map((u) => (
+      <div
+        key={u}
+        className="text-xs text-emerald-400 bg-emerald-500/10 px-2 py-1 rounded"
+      >
+        {u}
+      </div>
+    ))}
+  </div>
+</div>s
 
         {/*
           FULLSCREEN / FOCUS MODE TOGGLE
@@ -587,14 +730,14 @@ console.log(
         {/* MAIN GRAPH AREA */}
         <div className="flex-1 w-full h-full">
             <ReactFlow
-                nodes={nodes}
-                edges={edges}
-                nodeTypes={nodeTypes}
-                onNodesChange={onNodesChange}
-                onEdgesChange={onEdgesChange}
-                fitView
-                minZoom={0.1}
-            >
+              nodes={visibleNodes}
+              edges={filteredEdges}
+              nodeTypes={nodeTypes}
+              onNodesChange={onNodesChange}
+              onEdgesChange={onEdgesChange}
+              onMove={onMove}
+              minZoom={0.1}
+      >
                 <Background
                     color="#94a3b8"
                     gap={40}
@@ -651,6 +794,23 @@ console.log(
         </div>
         )}
       </div>
+      
+    {Object.entries(cursors).map(([id, pos]) => (
+  <div
+    key={id}
+    style={{
+      position: "absolute",
+      left: pos.x,
+      top: pos.y,
+      width: 10,
+      height: 10,
+      borderRadius: "50%",
+      background: "red",
+      pointerEvents: "none",
+      zIndex: 9999
+    }}
+  />
+))}
 
       {/* RIGHT: SLIDING SIDEBAR — hidden in focus mode to give the canvas full width */}
       {!isFullscreen && (

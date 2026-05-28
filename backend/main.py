@@ -5,8 +5,9 @@ import re
 import time
 import hashlib
 import logging
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException, Request, WebSocket, WebSocketDisconnect
 from fastapi.responses import JSONResponse
+from typing import List
 from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
 import google.generativeai as genai
@@ -16,6 +17,8 @@ import redis
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
+
+room_users = {}
 
 load_dotenv()
 
@@ -158,6 +161,23 @@ if not AVAILABLE_MODELS:
 app = FastAPI()
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+class ConnectionManager:
+    def __init__(self):
+        self.active_connections: List[WebSocket] = []
+
+    async def connect(self, websocket: WebSocket):
+        await websocket.accept()
+        self.active_connections.append(websocket)
+
+    def disconnect(self, websocket: WebSocket):
+        self.active_connections.remove(websocket)
+
+    async def broadcast(self, data: dict):
+        for connection in self.active_connections:
+            await connection.send_json(data)
+
+manager = ConnectionManager()
 
 app.add_middleware(
     CORSMiddleware,
@@ -344,3 +364,83 @@ async def regenerate_code(request: Request, payload: CodeRequest):
     except Exception as e:
         logger.exception("Unhandled error in /regenerate_code")
         raise HTTPException(status_code=500, detail=_GENERIC_ERROR)
+
+# In-memory stores for WebSockets (In production, use Redis Pub/Sub for scale)
+connected_clients: dict[str, set[WebSocket]] = {}
+
+@app.websocket("/ws")
+async def websocket_endpoint(websocket: WebSocket):
+    await websocket.accept()
+    room_id = None
+    client_id = None
+    
+    try:
+        while True:
+            data = await websocket.receive_json()
+            
+            # Extract data
+            msg_type = data.get("type")
+            current_room = data.get("roomId")
+            
+            if not current_room:
+                continue
+                
+            if current_room not in connected_clients:
+                connected_clients[current_room] = set()
+            if current_room not in room_users:
+                room_users[current_room] = set()
+                
+            # Manage initial connection and setup
+            if msg_type == "USER_JOIN":
+                room_id = current_room
+                client_id = data.get("clientId")
+                
+                connected_clients[room_id].add(websocket)
+                if client_id:
+                    room_users[room_id].add(client_id)
+                    
+                # Broadcast updated user list to everyone in the room
+                for client in list(connected_clients[room_id]):
+                    try:
+                        await client.send_json({
+                            "type": "ROOM_USERS",
+                            "users": list(room_users[room_id])
+                        })
+                    except Exception:
+                        pass
+                        
+            elif msg_type == "CURSOR_MOVE":
+                if current_room in connected_clients:
+                    for client in list(connected_clients[current_room]):
+                        if client != websocket:
+                            try:
+                                await client.send_json({
+                                    "type": "CURSOR_MOVE",
+                                    "clientId": data.get("clientId"),
+                                    "position": data.get("position")
+                                })
+                            except Exception:
+                                pass
+                                
+    except WebSocketDisconnect:
+        logger.info("WebSocket client disconnected.")
+    except Exception as e:
+        logger.error("WebSocket error: %s", e)
+    finally:
+        # Cleanup when client disconnects
+        if room_id and client_id:
+            if room_id in connected_clients and websocket in connected_clients[room_id]:
+                connected_clients[room_id].remove(websocket)
+            if room_id in room_users and client_id in room_users[room_id]:
+                room_users[room_id].remove(client_id)
+            
+            # Notify remaining users
+            if room_id in connected_clients:
+                for client in list(connected_clients[room_id]):
+                    try:
+                        await client.send_json({
+                            "type": "ROOM_USERS",
+                            "users": list(room_users[room_id])
+                        })
+                    except Exception:
+                        pass
