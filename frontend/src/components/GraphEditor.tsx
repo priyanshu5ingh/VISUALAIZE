@@ -268,6 +268,17 @@ function EditorContent({ onBack }: EditorProps) {
 
   const rafRef = useRef<number | null>(null);
   const socketRef = useRef<WebSocket | null>(null);
+  // Warn user before leaving with unsaved diagram
+useEffect(() => {
+  const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+    if (nodes.length > 0) {
+      e.preventDefault();
+      e.returnValue = '';
+    }
+  };
+  window.addEventListener('beforeunload', handleBeforeUnload);
+  return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+}, [nodes]);
 
   const onMove = useCallback((_: any, vp: any) => {
   if (rafRef.current) cancelAnimationFrame(rafRef.current);
