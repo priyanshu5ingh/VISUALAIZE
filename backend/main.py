@@ -104,6 +104,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+MAX_PROMPT_LENGTH = 2000
+
 class GraphRequest(BaseModel):
     prompt: str
 
@@ -194,6 +196,10 @@ def health_check():
 
 @app.post("/generate")
 async def generate_graph(request: GraphRequest):
+    if not request.prompt.strip():
+        raise HTTPException(status_code=400, detail="Prompt cannot be empty.")
+    if len(request.prompt) > MAX_PROMPT_LENGTH:
+        raise HTTPException(status_code=400, detail=f"Prompt is too long. Please keep it under {MAX_PROMPT_LENGTH} characters.")
     if not GENAI_KEY or GENAI_KEY == "missing" or not GENAI_KEY.strip():
         raise HTTPException(
             status_code=401,
