@@ -473,8 +473,12 @@ function EditorContent({ onBack }: EditorProps) {
   };
 
   const startListening = () => {
-    if ('webkitSpeechRecognition' in window) {
-      const recognition = new (window as WindowWithSpeech).webkitSpeechRecognition();
+  const SpeechAPI =
+    (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+
+  if (SpeechAPI) {
+    const recognition = new SpeechAPI();
+
       recognition.continuous = false; recognition.lang = 'en-US'; setIsListening(true);
       recognition.onresult = (event: SpeechRecognitionEvent) => {
         const transcript = event.results[0][0].transcript;
@@ -703,7 +707,7 @@ console.log(
       </div>
     ))}
   </div>
-</div>s
+</div>
 
         {/*
           FULLSCREEN / FOCUS MODE TOGGLE
@@ -969,6 +973,7 @@ console.log(
             </>
         )}
       </div>
+      )}
       {errorState && (
         <ErrorModal 
           show={errorState.show}
