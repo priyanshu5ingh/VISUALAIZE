@@ -2,12 +2,15 @@ import os
 import json
 import sys
 import re
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
+from typing import List
 from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
 import google.generativeai as genai
 from google.api_core import exceptions as google_exceptions
 from dotenv import load_dotenv
+
+room_users = {}
 
 load_dotenv()
 
@@ -116,13 +119,30 @@ def get_valid_models():
 
 # Run the scan once at startup
 AVAILABLE_MODELS = get_valid_models()
-print(f"✅ AUTO-DETECTED MODELS: {AVAILABLE_MODELS}")
+print(f"AUTO-DETECTED MODELS: {AVAILABLE_MODELS}")
 
 # If scan failed, force these defaults as a Hail Mary
 if not AVAILABLE_MODELS:
     AVAILABLE_MODELS = ["models/gemini-2.0-flash", "models/gemini-1.5-flash"]
 
 app = FastAPI()
+
+class ConnectionManager:
+    def __init__(self):
+        self.active_connections: List[WebSocket] = []
+
+    async def connect(self, websocket: WebSocket):
+        await websocket.accept()
+        self.active_connections.append(websocket)
+
+    def disconnect(self, websocket: WebSocket):
+        self.active_connections.remove(websocket)
+
+    async def broadcast(self, data: dict):
+        for connection in self.active_connections:
+            await connection.send_json(data)
+
+manager = ConnectionManager()
 
 app.add_middleware(
     CORSMiddleware,
@@ -337,3 +357,39 @@ async def regenerate_code(request: CodeRequest):
         raise he
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+@app.websocket("/ws")
+async def websocket_endpoint(websocket: WebSocket):
+    await websocket.accept()
+
+    try:
+        while True:
+            data = await websocket.receive_json()
+
+            if data["type"] == "USER_JOIN":
+                room_id = data["roomId"]
+                client_id = data["clientId"]
+
+            if data["type"] == "CURSOR_MOVE":
+                room_id = data["roomId"]
+
+    for client in connected_clients[room_id]:
+        if client != websocket:
+            await client.send_json({
+                "type": "CURSOR_MOVE",
+                "clientId": data["clientId"],
+                "position": data["position"]
+            })
+
+                if room_id not in room_users:
+                    room_users[room_id] = set()
+
+                room_users[room_id].add(client_id)
+
+                await websocket.send_json({
+                    "type": "ROOM_USERS",
+                    "users": list(room_users[room_id])
+                })
+
+    except Exception as e:
+        print("WebSocket error:", e)
