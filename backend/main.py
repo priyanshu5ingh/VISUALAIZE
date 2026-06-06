@@ -7,7 +7,6 @@ import hashlib
 import logging
 from fastapi import FastAPI, HTTPException, Request, WebSocket, WebSocketDisconnect
 from fastapi.responses import JSONResponse
-from typing import List
 from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
 import google.generativeai as genai
@@ -222,22 +221,7 @@ app = FastAPI()
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
-class ConnectionManager:
-    def __init__(self):
-        self.active_connections: List[WebSocket] = []
 
-    async def connect(self, websocket: WebSocket):
-        await websocket.accept()
-        self.active_connections.append(websocket)
-
-    def disconnect(self, websocket: WebSocket):
-        self.active_connections.remove(websocket)
-
-    async def broadcast(self, data: dict):
-        for connection in self.active_connections:
-            await connection.send_json(data)
-
-manager = ConnectionManager()
 
 app.add_middleware(
     CORSMiddleware,
@@ -388,8 +372,6 @@ async def generate_graph(request: Request, payload: GraphRequest):
     Raises:
         HTTPException: If the API key is missing or generation fails.
     """
-    if not GENAI_KEY:
-        raise HTTPException(status_code=500, detail="API Key missing on Render.")
     if not GENAI_KEY or GENAI_KEY == "missing" or not GENAI_KEY.strip():
         raise HTTPException(
             status_code=401,
@@ -529,8 +511,8 @@ async def websocket_endpoint(websocket: WebSocket):
                             "type": "ROOM_USERS",
                             "users": list(room_users[room_id])
                         })
-                    except Exception:
-                        pass
+                    except Exception as e:
+                        logger.debug("Failed to send ROOM_USERS to client in room %s: %s", room_id, e)
                         
             elif msg_type == "CURSOR_MOVE":
                 if current_room in connected_clients:
@@ -542,8 +524,8 @@ async def websocket_endpoint(websocket: WebSocket):
                                     "clientId": data.get("clientId"),
                                     "position": data.get("position")
                                 })
-                            except Exception:
-                                pass
+                            except Exception as e:
+                                logger.debug("Failed to send CURSOR_MOVE to client in room %s: %s", current_room, e)
                                 
     except WebSocketDisconnect:
         logger.info("WebSocket client disconnected.")
@@ -565,5 +547,5 @@ async def websocket_endpoint(websocket: WebSocket):
                             "type": "ROOM_USERS",
                             "users": list(room_users[room_id])
                         })
-                    except Exception:
-                        pass
+                    except Exception as e:
+                        logger.debug("Failed to send ROOM_USERS (cleanup) to client in room %s: %s", room_id, e)
