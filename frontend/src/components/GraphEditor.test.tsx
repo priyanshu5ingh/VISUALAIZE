@@ -53,18 +53,14 @@ describe('SVG Export', () => {
     const mockToSvg = toSvg as jest.Mock;
     mockToSvg.mockRejectedValue(new Error('Export failed'));
 
-    await expect(
-      mockToSvg(document.createElement('div'))
-    ).rejects.toThrow('Export failed');
+    await expect(mockToSvg(document.createElement('div'))).rejects.toThrow('Export failed');
   });
 });
 
 describe('JSON Export', () => {
   it('exports correct node structure', () => {
-    const nodes = [
-      { id: '1', data: { label: 'Node 1' }, position: { x: 0, y: 0 } },
-    ];
-    const exported = nodes.map(n => ({
+    const nodes = [{ id: '1', data: { label: 'Node 1' }, position: { x: 0, y: 0 } }];
+    const exported = nodes.map((n) => ({
       id: n.id,
       label: n.data?.label,
       position: n.position,
@@ -78,10 +74,8 @@ describe('JSON Export', () => {
   });
 
   it('exports correct edge structure', () => {
-    const edges = [
-      { id: 'e1', source: '1', target: '2', label: 'connects' },
-    ];
-    const exported = edges.map(e => ({
+    const edges = [{ id: 'e1', source: '1', target: '2', label: 'connects' }];
+    const exported = edges.map((e) => ({
       id: e.id,
       source: e.source,
       target: e.target,

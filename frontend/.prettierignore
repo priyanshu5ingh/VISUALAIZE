@@ -1,0 +1,7 @@
+node_modules
+.next
+out
+build
+*.svg
+*.glb
+package-lock.json

@@ -8,10 +8,10 @@ import * as THREE from 'three';
 // The Floating Liquid Core
 function LiquidCore({ isZooming }: { isZooming: boolean }) {
   const meshRef = useRef<THREE.Mesh>(null);
-  
+
   useFrame((state) => {
     if (!meshRef.current) return;
-    
+
     // Normal floating rotation
     const t = state.clock.getElapsedTime();
     meshRef.current.rotation.x = t * 0.2;
@@ -21,7 +21,7 @@ function LiquidCore({ isZooming }: { isZooming: boolean }) {
     if (!isZooming) {
       const scale = 2 + Math.sin(t) * 0.1;
       meshRef.current.scale.set(scale, scale, scale);
-    } 
+    }
     // WARP SPEED EFFECT (When clicking launch)
     else {
       // Rapidly expand the sphere to consume the camera
@@ -79,7 +79,7 @@ export default function Hero3D({ isZooming }: { isZooming: boolean }) {
         <ambientLight intensity={0.5} />
         <pointLight position={[10, 10, 10]} intensity={1.5} color="#818cf8" />
         <pointLight position={[-10, -10, -10]} intensity={0.5} color="#c084fc" />
-        
+
         {/* The Actors */}
         <BackgroundStars isZooming={isZooming} />
         <LiquidCore isZooming={isZooming} />

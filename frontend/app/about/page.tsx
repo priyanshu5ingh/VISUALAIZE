@@ -1,18 +1,18 @@
 'use client';
-import InteractiveCard from "../../src/components/InteractiveCard";
+import InteractiveCard from '../../src/components/InteractiveCard';
 import React from 'react';
 import { motion } from 'framer-motion';
 import { ArrowLeft, Cpu, Globe, Mic, Code, Zap, Shield, ChevronRight } from 'lucide-react';
 import Link from 'next/link';
-import ProductDemo from "../../src/components/ProductDemo";
+import ProductDemo from '../../src/components/ProductDemo';
 
 // --- ANIMATION WRAPPER ---
 const ScrollReveal = ({ children, delay = 0 }: { children: React.ReactNode; delay?: number }) => (
   <motion.div
     initial={{ opacity: 0, y: 50 }}
     whileInView={{ opacity: 1, y: 0 }}
-    viewport={{ once: true, margin: "-100px" }}
-    transition={{ duration: 0.8, delay, ease: "easeOut" }}
+    viewport={{ once: true, margin: '-100px' }}
+    transition={{ duration: 0.8, delay, ease: 'easeOut' }}
   >
     {children}
   </motion.div>
@@ -21,10 +21,12 @@ const ScrollReveal = ({ children, delay = 0 }: { children: React.ReactNode; dela
 export default function AboutPage() {
   return (
     <div className="min-h-screen bg-slate-950 text-slate-200 font-sans selection:bg-blue-500/30">
-      
       {/* --- NAVIGATION --- */}
       <nav className="fixed top-0 w-full z-50 p-6 flex flex-wrap items-center justify-between gap-4 backdrop-blur-md bg-slate-950/50 border-b border-white/5">
-        <Link href="/" className="focus-ring flex items-center gap-2 text-slate-400 hover:text-white transition-colors group flex-shrink-0">
+        <Link
+          href="/"
+          className="focus-ring flex items-center gap-2 text-slate-400 hover:text-white transition-colors group flex-shrink-0"
+        >
           <ArrowLeft size={20} className="group-hover:-translate-x-1 transition-transform" />
           <span className="font-mono text-sm tracking-wider">BACK TO TERMINAL</span>
         </Link>
@@ -36,19 +38,26 @@ export default function AboutPage() {
       {/* --- HERO SECTION --- */}
       <section className="relative pt-48 pb-32 px-6 overflow-hidden">
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[500px] bg-blue-600/20 blur-[120px] rounded-full opacity-50 pointer-events-none" />
-        
+
         <div className="max-w-5xl mx-auto text-center relative z-10">
-          <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 1 }}>
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 1 }}
+          >
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 text-xs font-bold uppercase tracking-widest mb-8">
               <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
               Powered by Gemini 2.5
             </div>
             <h1 className="text-7xl md:text-8xl font-black text-white mb-8 tracking-tight leading-tight">
               Logic at the <br />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-indigo-400 to-purple-400">Speed of Thought.</span>
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-indigo-400 to-purple-400">
+                Speed of Thought.
+              </span>
             </h1>
             <p className="text-xl text-slate-400 max-w-2xl mx-auto leading-relaxed mb-12">
-              Stop drawing boxes manually. VisualAIze turns natural language into complex architecture, runnable code, and interactive diagrams instantly.
+              Stop drawing boxes manually. VisualAIze turns natural language into complex
+              architecture, runnable code, and interactive diagrams instantly.
             </p>
           </motion.div>
         </div>
@@ -59,29 +68,25 @@ export default function AboutPage() {
         <div className="max-w-6xl mx-auto">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-start">
             {[
-              { 
-                icon: Mic, 
-                title: "Voice Command", 
-                desc: "Speak naturally. 'Create a Neural Net with 5 layers.' The engine understands context and intent instantly." 
+              {
+                icon: Mic,
+                title: 'Voice Command',
+                desc: "Speak naturally. 'Create a Neural Net with 5 layers.' The engine understands context and intent instantly.",
               },
-              { 
-                icon: Code, 
-                title: "Polyglot Engine", 
-                desc: "Generate implementation code in Python, C++, Java, or JavaScript automatically from your diagrams." 
+              {
+                icon: Code,
+                title: 'Polyglot Engine',
+                desc: 'Generate implementation code in Python, C++, Java, or JavaScript automatically from your diagrams.',
               },
-              { 
-                icon: Cpu, 
-                title: "AI Tutor", 
-                desc: "Don't just see the graph. Chat with it. Ask questions about specific nodes, logic flows, and optimization." 
+              {
+                icon: Cpu,
+                title: 'AI Tutor',
+                desc: "Don't just see the graph. Chat with it. Ask questions about specific nodes, logic flows, and optimization.",
               },
             ].map((feature, i) => (
               <ScrollReveal key={i} delay={i * 0.1}>
-                 {/* Replaced static div with InteractiveCard */}
-                 <InteractiveCard 
-                    icon={feature.icon}
-                    title={feature.title}
-                    desc={feature.desc}
-                 />
+                {/* Replaced static div with InteractiveCard */}
+                <InteractiveCard icon={feature.icon} title={feature.title} desc={feature.desc} />
               </ScrollReveal>
             ))}
           </div>
@@ -94,12 +99,21 @@ export default function AboutPage() {
           <div className="flex flex-col md:flex-row items-center gap-16">
             <div className="flex-1">
               <ScrollReveal>
-                <h2 className="text-5xl font-bold text-white mb-6">Built for <span className="text-blue-500">Builders.</span></h2>
+                <h2 className="text-5xl font-bold text-white mb-6">
+                  Built for <span className="text-blue-500">Builders.</span>
+                </h2>
                 <p className="text-lg text-slate-400 mb-8 leading-relaxed">
-                  Whether you are a student learning automata theory or an architect designing cloud infrastructure, VisualAIze eliminates the friction between &quot;Thinking&quot; and &quot;Seeing&quot;.
+                  Whether you are a student learning automata theory or an architect designing cloud
+                  infrastructure, VisualAIze eliminates the friction between &quot;Thinking&quot;
+                  and &quot;Seeing&quot;.
                 </p>
                 <ul className="space-y-4 mb-8">
-                  {['Instant Visualization', 'Export to High-Res PNG', 'Dark Mode Optimized', 'Real-time Latency < 50ms'].map((item, i) => (
+                  {[
+                    'Instant Visualization',
+                    'Export to High-Res PNG',
+                    'Dark Mode Optimized',
+                    'Real-time Latency < 50ms',
+                  ].map((item, i) => (
                     <li key={i} className="flex items-center gap-3 text-slate-300">
                       <Zap size={18} className="text-yellow-400" /> {item}
                     </li>
@@ -107,21 +121,18 @@ export default function AboutPage() {
                 </ul>
               </ScrollReveal>
             </div>
-            
+
             {/* --- VIDEO DEMO SECTION --- */}
             <div className="flex-1 relative">
               <ScrollReveal delay={0.3}>
                 <div className="relative z-10 rounded-xl overflow-hidden border border-white/10 shadow-2xl shadow-blue-900/20 bg-slate-900">
-                   
-                   {/* ADDED PRODUCT DEMO COMPONENT HERE */}
-                   <ProductDemo />
-
+                  {/* ADDED PRODUCT DEMO COMPONENT HERE */}
+                  <ProductDemo />
                 </div>
                 {/* Decoration Glow */}
                 <div className="absolute -inset-4 bg-gradient-to-r from-blue-500 to-purple-600 opacity-20 blur-xl -z-10" />
               </ScrollReveal>
             </div>
-            
           </div>
         </div>
       </section>
@@ -139,116 +150,103 @@ export default function AboutPage() {
       </section>
 
       {/* --- FOOTER --- */}
-{/* --- PREMIUM FOOTER --- */}
-<footer className="relative border-t border-white/5 bg-gradient-to-b from-slate-950 to-black overflow-hidden">
+      {/* --- PREMIUM FOOTER --- */}
+      <footer className="relative border-t border-white/5 bg-gradient-to-b from-slate-950 to-black overflow-hidden">
+        {/* Background Glow */}
+        <div className="absolute inset-0 pointer-events-none">
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[500px] h-[200px] bg-blue-500/10 blur-[120px]" />
+        </div>
 
-  {/* Background Glow */}
-  <div className="absolute inset-0 pointer-events-none">
-    <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[500px] h-[200px] bg-blue-500/10 blur-[120px]" />
-  </div>
+        <div className="relative z-10 max-w-7xl mx-auto px-6 py-7">
+          {/* Top Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-14 border-b border-white/5 pb-14">
+            {/* LEFT SIDE */}
+            <div>
+              <div className="flex items-center gap-4 mb-6">
+                {/* LOGO */}
+                <div className="relative group">
+                  <img
+                    src="/assets/logo.png"
+                    alt="VisualAIze Logo"
+                    className="w-12 h-12 object-contain transition-transform duration-500 group-hover:rotate-6"
+                  />
 
-  <div className="relative z-10 max-w-7xl mx-auto px-6 py-7">
+                  {/* Glow */}
+                  <div className="absolute inset-0 bg-blue-500/20 blur-xl opacity-0 group-hover:opacity-100 transition-opacity" />
+                </div>
 
-    {/* Top Grid */}
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-14 border-b border-white/5 pb-14">
+                {/* BRAND */}
+                <div>
+                  <h2 className="text-3xl font-black tracking-tight text-white">VisualAIze</h2>
 
-      {/* LEFT SIDE */}
-      <div>
-        <div className="flex items-center gap-4 mb-6">
+                  <div className="h-[2px] w-16 bg-gradient-to-r from-blue-500 to-transparent mt-2" />
+                </div>
+              </div>
 
-          {/* LOGO */}
-          <div className="relative group">
-            <img
-              src="/assets/logo.png"
-              alt="VisualAIze Logo"
-              className="w-12 h-12 object-contain transition-transform duration-500 group-hover:rotate-6"
-            />
+              <p className="text-slate-400 text-lg leading-relaxed max-w-sm">
+                Transform ideas into intelligent visual systems.
+              </p>
+            </div>
 
-            {/* Glow */}
-            <div className="absolute inset-0 bg-blue-500/20 blur-xl opacity-0 group-hover:opacity-100 transition-opacity" />
+            {/* CENTER */}
+            <div>
+              <h3 className="text-blue-400 uppercase tracking-[0.2em] text-sm font-bold mb-6">
+                About Project
+              </h3>
+
+              <p className="text-slate-400 leading-relaxed text-[15px]">
+                A cutting-edge AI-powered graph visualization platform powered by Gemini 2.5,
+                designed for creating beautiful, interactive diagrams from natural language
+                descriptions.
+              </p>
+
+              <div className="flex flex-wrap gap-3 mt-8">
+                {['Next.js', 'React Flow', 'Three.js', 'FastAPI'].map((tech) => (
+                  <span key={tech} className="px-3 py-1  bg-white/[0.03] text-blue-500 text-sm">
+                    {tech}
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            {/* RIGHT SIDE */}
+            <div>
+              <h3 className="text-blue-400 uppercase tracking-[0.2em] text-sm font-bold mb-6">
+                Connect
+              </h3>
+
+              <div className="space-y-4">
+                <a
+                  href="https://github.com/priyanshu5ingh"
+                  target="_blank"
+                  className="group flex items-center justify-between border-b border-white/5 pb-3 text-slate-300 hover:text-white transition"
+                >
+                  <span>GitHub</span>
+                  <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                </a>
+
+                <a
+                  href="https://www.linkedin.com/in/priyanshu5ingh/"
+                  target="_blank"
+                  className="group flex items-center justify-between border-b border-white/5 pb-3 text-slate-300 hover:text-white transition"
+                >
+                  <span>LinkedIn</span>
+                  <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                </a>
+              </div>
+            </div>
           </div>
 
-          {/* BRAND */}
-          <div>
-            <h2 className="text-3xl font-black tracking-tight text-white">
-              VisualAIze
-            </h2>
+          {/* Bottom Bar */}
+          <div className="flex flex-col md:flex-row items-center justify-between gap-4 pt-4">
+            <p className="font-mono text-xs tracking-[0.25em] text-slate-500 text-center md:text-left">
+              BUILT WITH GEMINI 2.5 • NEXT.JS • REACT FLOW • THREE.JS
+            </p>
 
-            <div className="h-[2px] w-16 bg-gradient-to-r from-blue-500 to-transparent mt-2" />
+            <p className="text-slate-500 text-md">© VisualAIze All rights reserved</p>
           </div>
         </div>
-
-        <p className="text-slate-400 text-lg leading-relaxed max-w-sm">
-          Transform ideas into intelligent visual systems.
-        </p>
-      </div>
-
-      {/* CENTER */}
-      <div>
-        <h3 className="text-blue-400 uppercase tracking-[0.2em] text-sm font-bold mb-6">
-          About Project
-        </h3>
-
-        <p className="text-slate-400 leading-relaxed text-[15px]">
-          A cutting-edge AI-powered graph visualization platform powered by Gemini 2.5,
-          designed for creating beautiful, interactive diagrams from natural language descriptions.
-        </p>
-
-        <div className="flex flex-wrap gap-3 mt-8">
-          {["Next.js", "React Flow", "Three.js", "FastAPI"].map((tech) => (
-            <span
-              key={tech}
-              className="px-3 py-1  bg-white/[0.03] text-blue-500 text-sm"
-            >
-              {tech}
-            </span>
-          ))}
-        </div>
-      </div>
-
-      {/* RIGHT SIDE */}
-      <div>
-        <h3 className="text-blue-400 uppercase tracking-[0.2em] text-sm font-bold mb-6">
-          Connect
-        </h3>
-
-        <div className="space-y-4">
-
-          <a
-            href="https://github.com/priyanshu5ingh"
-            target="_blank"
-            className="group flex items-center justify-between border-b border-white/5 pb-3 text-slate-300 hover:text-white transition"
-          >
-            <span>GitHub</span>
-            <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-          </a>
-
-          <a
-            href="https://www.linkedin.com/in/priyanshu5ingh/"
-            target="_blank"
-            className="group flex items-center justify-between border-b border-white/5 pb-3 text-slate-300 hover:text-white transition"
-          >
-            <span>LinkedIn</span>
-            <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-          </a>
-
-        </div>
-      </div>
-    </div>
-
-    {/* Bottom Bar */}
-    <div className="flex flex-col md:flex-row items-center justify-between gap-4 pt-4">
-
-      <p className="font-mono text-xs tracking-[0.25em] text-slate-500 text-center md:text-left">
-        BUILT WITH GEMINI 2.5 • NEXT.JS • REACT FLOW • THREE.JS
-      </p>
-
-      <p className="text-slate-500 text-md">
-        © VisualAIze All rights reserved
-      </p>
-    </div>
-  </div>
-</footer>
+      </footer>
     </div>
   );
 }

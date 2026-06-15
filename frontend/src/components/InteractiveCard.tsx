@@ -1,7 +1,7 @@
-"use client";
-import React, { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { LucideIcon } from "lucide-react";
+'use client';
+import React, { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { LucideIcon } from 'lucide-react';
 
 interface InteractiveCardProps {
   icon: LucideIcon;
@@ -21,7 +21,7 @@ const InteractiveCard = ({ icon: Icon, title, desc, onClick }: InteractiveCardPr
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
     if (!isInteractive) return;
-    if (e.key === "Enter" || e.key === " ") {
+    if (e.key === 'Enter' || e.key === ' ') {
       e.preventDefault(); // Prevent Space from scrolling the page
       onClick?.();
     }
@@ -31,7 +31,7 @@ const InteractiveCard = ({ icon: Icon, title, desc, onClick }: InteractiveCardPr
     <motion.div
       layout
       // Conditionally apply button role/tabIndex only when truly interactive
-      role={isInteractive ? "button" : undefined}
+      role={isInteractive ? 'button' : undefined}
       tabIndex={isInteractive ? 0 : undefined}
       onClick={isInteractive ? onClick : undefined}
       onKeyDown={handleKeyDown}
@@ -39,12 +39,12 @@ const InteractiveCard = ({ icon: Icon, title, desc, onClick }: InteractiveCardPr
       onHoverEnd={() => setIsHovered(false)}
       onFocus={() => setIsHovered(true)}
       onBlur={() => setIsHovered(false)}
-      className={`${isInteractive ? "focus-ring" : ""} relative p-8 rounded-2xl border transition-colors overflow-hidden ${
-        isInteractive ? "cursor-pointer" : "cursor-default"
+      className={`${isInteractive ? 'focus-ring' : ''} relative p-8 rounded-2xl border transition-colors overflow-hidden ${
+        isInteractive ? 'cursor-pointer' : 'cursor-default'
       } ${
         isHovered
-          ? "bg-blue-900/20 border-blue-500/50" // Active Styles
-          : "bg-slate-900 border-white/5"       // Idle Styles
+          ? 'bg-blue-900/20 border-blue-500/50' // Active Styles
+          : 'bg-slate-900 border-white/5' // Idle Styles
       }`}
       initial={{ borderRadius: 16 }}
     >
@@ -64,7 +64,7 @@ const InteractiveCard = ({ icon: Icon, title, desc, onClick }: InteractiveCardPr
         <motion.div
           layout
           className={`w-12 h-12 rounded-lg flex items-center justify-center mb-4 transition-colors ${
-            isHovered ? "bg-blue-500 text-white" : "bg-blue-500/10 text-blue-400"
+            isHovered ? 'bg-blue-500 text-white' : 'bg-blue-500/10 text-blue-400'
           }`}
         >
           <Icon size={24} />
@@ -74,7 +74,7 @@ const InteractiveCard = ({ icon: Icon, title, desc, onClick }: InteractiveCardPr
         <motion.h3
           layout
           className={`text-2xl font-bold mb-2 transition-colors ${
-            isHovered ? "text-white" : "text-slate-200"
+            isHovered ? 'text-white' : 'text-slate-200'
           }`}
         >
           {title}
@@ -85,7 +85,7 @@ const InteractiveCard = ({ icon: Icon, title, desc, onClick }: InteractiveCardPr
           {isHovered && (
             <motion.p
               initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: "auto" }}
+              animate={{ opacity: 1, height: 'auto' }}
               exit={{ opacity: 0, height: 0 }}
               className="text-slate-300 leading-relaxed overflow-hidden"
             >

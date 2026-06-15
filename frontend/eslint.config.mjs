@@ -1,8 +1,8 @@
-import nextVitals from "eslint-config-next/core-web-vitals";
+import nextVitals from 'eslint-config-next/core-web-vitals';
 
 export default [
   ...nextVitals,
   {
-    ignores: [".next/**", "node_modules/**"],
+    ignores: ['.next/**', 'node_modules/**'],
   },
 ];
