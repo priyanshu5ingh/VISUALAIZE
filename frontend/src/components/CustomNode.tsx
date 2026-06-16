@@ -13,7 +13,7 @@ const CustomNode = ({ data, selected }: CustomNodeProps) => {
   let glowColor = "shadow-blue-500/50";
   let borderColor = "border-blue-400/30";
 
-  const label = data.label.toLowerCase();
+  const label = (data?.label || '').toLowerCase();
   if (label.includes('start')) {
     Icon = ArrowRightCircle;
     glowColor = "shadow-emerald-500/50";

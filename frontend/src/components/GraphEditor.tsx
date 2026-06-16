@@ -1,5 +1,7 @@
 // frontend/src/components/GraphEditor.tsx
 'use client';
+import HistoryPanel from './HistoryPanel';
+import { saveToHistory, getHistory, deleteFromHistory, SavedDiagram } from '../utils/storage';
 
 import { toPng } from 'html-to-image';
 import { getLayoutedElements } from '../utils/layout'; 
@@ -7,7 +9,7 @@ import {
   ArrowLeft, Box, GitBranch, Network, Share2, Terminal, 
   Activity, BookOpen, PlayCircle, Layers, Code, Copy, Check, Zap, 
   Globe, Mic, Download, ChevronDown, MessageSquare, Send, Paperclip, 
-  PanelRightClose, PanelRightOpen, AlertTriangle, ArrowRight, X, RefreshCw
+  PanelRightClose, PanelRightOpen, AlertTriangle, ArrowRight, X, RefreshCw,Maximize2, Minimize2, History
 } from 'lucide-react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import ReactFlow, {
@@ -222,7 +224,11 @@ function EditorContent({ onBack }: EditorProps) {
    * The user can exit focus mode via the toggle button or the Escape key.
    */
   const [isFullscreen, setIsFullscreen] = useState(false);
-
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [savedHistory, setSavedHistory] = useState<SavedDiagram[]>([]);
+useEffect(() => {
+    setSavedHistory(getHistory());
+  }, []);
   const codeCache = useRef(new Map<string, codeObject>());
   const reactFlowWrapper = useRef(null);
   const fileInputRef = useRef<HTMLInputElement>(null); 
@@ -358,6 +364,10 @@ function EditorContent({ onBack }: EditorProps) {
       const { nodes: layoutedNodes, edges: layoutedEdges } = getLayoutedElements(rawNodes, rawEdges);
       setNodes(layoutedNodes);
       setEdges(layoutedEdges);
+      const newEntry = saveToHistory(text, data, layoutedNodes, layoutedEdges);
+      if (newEntry) {
+        setSavedHistory(prev => [newEntry, ...prev].slice(0, 20));
+      }
       console.log("RAW BACKEND DATA:", data.nodes, data.edges);
       console.log("LAYOUTED NODES:", layoutedNodes.length);
       console.log("LAYOUTED EDGES:", layoutedEdges.length);
@@ -388,6 +398,19 @@ function EditorContent({ onBack }: EditorProps) {
   EDGE_ADD: "EDGE_ADD",
   EDGE_DELETE: "EDGE_DELETE"
 };
+const loadFromHistory = (diagram: SavedDiagram) => {
+    setPrompt(diagram.prompt);
+    setGraphData(diagram.data as any);
+    setNodes(diagram.data.nodes);
+    setEdges(diagram.data.edges);
+    setHistoryOpen(false);
+    setIsSidebarOpen(true);
+  };
+
+  const handleDeleteHistory = (id: string) => {
+    const updated = deleteFromHistory(id);
+    if (updated) setSavedHistory(updated);
+  };
 
   const regenerateCode = async (newLang: string) => {
     setCodeLanguage(newLang);
@@ -645,11 +668,17 @@ console.log(
       
       {/* 0. INJECT CSS FOR CONTROLS */}
       <style>{glassControlsStyle}</style>
-
-      {/* 1. THE 3D HOLOGRAPHIC BACKGROUND */}
-      <div className={`absolute inset-0 transition-opacity duration-1000 z-0 ${showBackground ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
-          <HolographicScene />
-      </div>
+<HistoryPanel 
+        isOpen={historyOpen} 
+        onClose={() => setHistoryOpen(false)} 
+        history={savedHistory}
+        onLoad={loadFromHistory}
+        onDelete={handleDeleteHistory}
+      />
+    {/* 1. THE 3D HOLOGRAPHIC BACKGROUND - BYPASSED */}
+<div className={`absolute inset-0 transition-opacity duration-1000 z-0 ${showBackground ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
+    {/* <HolographicScene /> */}
+</div>
 
       <div className="absolute inset-0 bg-slate-950/20 pointer-events-none z-0" />
       {isGenerating && <LoadingOverlay />}
@@ -659,7 +688,7 @@ console.log(
         
         {/* TOP BAR — hidden in focus mode to maximise canvas real-estate */}
         {!isFullscreen && (
-        <div className="absolute top-0 left-0 w-full p-6 z-40 flex justify-between items-center pointer-events-none">
+<div className="absolute top-0 left-0 w-full p-6 z-40 flex justify-between items-center pointer-events-none">
           <button
             onClick={onBack}
             aria-label="Go back to landing page"
@@ -669,6 +698,15 @@ console.log(
           </button>
           
           <div className="flex gap-4 pointer-events-auto">
+             {/* --- ADDED HISTORY BUTTON HERE --- */}
+             <button 
+                onClick={() => setHistoryOpen(true)}
+                className="focus-ring flex items-center gap-2 px-3 py-1 rounded-full bg-slate-800/80 backdrop-blur-md border border-white/10 text-xs text-slate-300 hover:bg-blue-600 hover:text-white transition-all shadow-lg"
+             >
+                <History size={14} /> HISTORY
+             </button>
+             {/* ------------------------------- */}
+
              <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-slate-900/60 backdrop-blur-md border border-white/10 text-xs font-mono text-emerald-400 shadow-lg">
                 <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"/> ONLINE
              </div>
@@ -967,8 +1005,10 @@ console.log(
                 </div>
             </div>
             </>
-        )}
-      </div>
+            )}
+            </div>
+      )}
+
       {errorState && (
         <ErrorModal 
           show={errorState.show}
