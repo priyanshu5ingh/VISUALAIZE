@@ -8,12 +8,12 @@ import {
   Activity, BookOpen, PlayCircle, Layers, Code, Copy, Check, Zap,
   Globe, Mic, Download, ChevronDown, MessageSquare, Send, Paperclip,
   PanelRightClose, PanelRightOpen, AlertTriangle, ArrowRight, X, RefreshCw,
-  Maximize2, Minimize2
+  Maximize2, Minimize2, ZoomIn, ZoomOut, Maximize, Lock, Unlock
 } from 'lucide-react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import ReactFlow, {
   applyEdgeChanges, applyNodeChanges,
-  Background, BackgroundVariant, Controls,
+  Background, BackgroundVariant, Controls, ControlButton,
   Edge,
   MarkerType,
   MiniMap,
@@ -287,7 +287,7 @@ function EditorContent({ onBack }: EditorProps) {
   const codeCache = useRef(new Map<string, codeObject>());
   const reactFlowWrapper = useRef(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const { getNodes, getEdges, fitView } = useReactFlow();
+  const { getNodes, getEdges, fitView, zoomIn, zoomOut } = useReactFlow();
 
   const copyTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const fitViewTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -819,7 +819,38 @@ function EditorContent({ onBack }: EditorProps) {
                     className="opacity-[0.1]"
                 />
 
-                {nodes.length > 0 && <Controls />}
+                {nodes.length > 0 && (
+                  <Controls showZoom={false} showFitView={false} showInteractive={false}>
+                    <ControlButton
+                      onClick={() => zoomIn({ duration: 300 })}
+                      title="Zoom In"
+                      aria-label="Zoom in"
+                    >
+                      <ZoomIn size={14} />
+                    </ControlButton>
+                    <ControlButton
+                      onClick={() => zoomOut({ duration: 300 })}
+                      title="Zoom Out"
+                      aria-label="Zoom out"
+                    >
+                      <ZoomOut size={14} />
+                    </ControlButton>
+                    <ControlButton
+                      onClick={() => fitView({ padding: 0.15, duration: 500 })}
+                      title="Fit View"
+                      aria-label="Fit view"
+                    >
+                      <Maximize size={14} />
+                    </ControlButton>
+                    <ControlButton
+                      onClick={() => setNodes(nds => nds.map(n => ({ ...n, draggable: !(n.draggable ?? true) })))}
+                      title="Toggle Interactive (lock/unlock nodes)"
+                      aria-label="Toggle interactive"
+                    >
+                      <Lock size={14} />
+                    </ControlButton>
+                  </Controls>
+                )}
 
                 {nodes.length > 0 && (
                     <MiniMap
