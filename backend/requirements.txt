@@ -30,7 +30,7 @@ protobuf==5.29.6
 pyasn1==0.6.2
 pyasn1_modules==0.4.2
 pydantic==2.13.4
-pydantic_core==2.46.4
+pydantic_core==2.47.0
 pyparsing==3.3.2
 python-dotenv==1.2.2
 PyYAML==6.0.3
