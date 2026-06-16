@@ -2,12 +2,13 @@
 'use client';
 
 import { toPng } from 'html-to-image';
-import { getLayoutedElements } from '../utils/layout'; 
-import { 
-  ArrowLeft, Box, GitBranch, Network, Share2, Terminal, 
-  Activity, BookOpen, PlayCircle, Layers, Code, Copy, Check, Zap, 
-  Globe, Mic, Download, ChevronDown, MessageSquare, Send, Paperclip, 
-  PanelRightClose, PanelRightOpen, AlertTriangle, ArrowRight, X, RefreshCw
+import { getLayoutedElements } from '../utils/layout';
+import {
+  ArrowLeft, Box, GitBranch, Network, Share2, Terminal,
+  Activity, BookOpen, PlayCircle, Layers, Code, Copy, Check, Zap,
+  Globe, Mic, Download, ChevronDown, MessageSquare, Send, Paperclip,
+  PanelRightClose, PanelRightOpen, AlertTriangle, ArrowRight, X, RefreshCw,
+  Maximize2, Minimize2
 } from 'lucide-react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import ReactFlow, {
@@ -24,17 +25,14 @@ import ReactFlow, {
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import CustomNode from '../components/CustomNode';
-import { getLayoutedElements } from '../utils/layout';
 import { mergeGraph } from '../utils/mergeGraph';
 import HolographicScene from './HolographicScene';
 import { flushSync } from 'react-dom';
-import HolographicScene from './HolographicScene';
 import ErrorModal from './ErrorModal';
 import LoadingCore from './LoadingCore';
 
 interface EditorProps { onBack: () => void; }
 
-// --- Graph data shape returned by the backend ---
 interface GraphData {
   title: string;
   summary: string;
@@ -52,7 +50,6 @@ interface codeObject {
   code_explanation: string;
 }
 
-// --- SpeechRecognition type shim (not in lib.dom.d.ts) ---
 interface SpeechRecognitionEvent extends Event {
   results: SpeechRecognitionResultList;
 }
@@ -70,8 +67,6 @@ interface WindowWithSpeech extends Window {
   webkitSpeechRecognition: new () => WebkitSpeechRecognition;
 }
 
-// --- 🔧 CONFIGURATION: SINGLE SOURCE OF TRUTH ---
-// This ensures we ALWAYS talk to Render, avoiding localhost confusion.
 const BACKEND_URL = "https://visualaize-backend.onrender.com";
 
 const glassControlsStyle = `
@@ -133,7 +128,7 @@ const glassControlsStyle = `
 
 const SystemLogs = () => {
   const [logs, setLogs] = useState<string[]>(["> INITIALIZING VISUALAIZE CORE..."]);
-  
+
   useEffect(() => {
     const messages = [
       "LOADING NEURAL MODULES...",
@@ -160,6 +155,63 @@ const SystemLogs = () => {
            {log}<span className="animate-pulse">_</span>
         </div>
       ))}
+    </div>
+  );
+};
+
+// Empty state shown before any diagram is generated.
+// Sits above the canvas, centered, with a faint floating node-tree illustration.
+const EmptyState = () => {
+  return (
+    <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none select-none z-10">
+      <div
+        className="mb-6 opacity-[0.18]"
+        style={{ animation: 'float 5s ease-in-out infinite' }}
+        aria-hidden="true"
+      >
+        <svg
+          width="200"
+          height="150"
+          viewBox="0 0 200 150"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          {/* edges */}
+          <line x1="100" y1="32" x2="50" y2="88" stroke="#818cf8" strokeWidth="1.5" strokeDasharray="4 3" />
+          <line x1="100" y1="32" x2="150" y2="88" stroke="#818cf8" strokeWidth="1.5" strokeDasharray="4 3" />
+          <line x1="50" y1="102" x2="26" y2="136" stroke="#818cf8" strokeWidth="1.5" strokeDasharray="4 3" />
+          <line x1="50" y1="102" x2="74" y2="136" stroke="#818cf8" strokeWidth="1.5" strokeDasharray="4 3" />
+          <line x1="150" y1="102" x2="126" y2="136" stroke="#818cf8" strokeWidth="1.5" strokeDasharray="4 3" />
+          <line x1="150" y1="102" x2="174" y2="136" stroke="#818cf8" strokeWidth="1.5" strokeDasharray="4 3" />
+          {/* root */}
+          <circle cx="100" cy="22" r="16" stroke="#818cf8" strokeWidth="1.5" fill="transparent" />
+          <text x="100" y="26" textAnchor="middle" fontSize="8" fontFamily="monospace" fill="#818cf8">Root</text>
+          {/* level 2 */}
+          <circle cx="50" cy="95" r="12" stroke="#818cf8" strokeWidth="1.5" fill="transparent" />
+          <text x="50" y="99" textAnchor="middle" fontSize="8" fontFamily="monospace" fill="#818cf8">A</text>
+          <circle cx="150" cy="95" r="12" stroke="#818cf8" strokeWidth="1.5" fill="transparent" />
+          <text x="150" y="99" textAnchor="middle" fontSize="8" fontFamily="monospace" fill="#818cf8">B</text>
+          {/* leaves */}
+          <circle cx="26" cy="141" r="8" stroke="#818cf8" strokeWidth="1.5" fill="transparent" />
+          <circle cx="74" cy="141" r="8" stroke="#818cf8" strokeWidth="1.5" fill="transparent" />
+          <circle cx="126" cy="141" r="8" stroke="#818cf8" strokeWidth="1.5" fill="transparent" />
+          <circle cx="174" cy="141" r="8" stroke="#818cf8" strokeWidth="1.5" fill="transparent" />
+        </svg>
+      </div>
+
+      <p className="text-base font-semibold text-white/35 tracking-wide">
+        Type a prompt below to visualize your architecture.
+      </p>
+      <p className="mt-1.5 text-xs text-white/20">
+        Try: &ldquo;Flowchart for a user authentication system&rdquo;
+      </p>
+
+      <style>{`
+        @keyframes float {
+          0%, 100% { transform: translateY(0px); }
+          50% { transform: translateY(-8px); }
+        }
+      `}</style>
     </div>
   );
 };
@@ -217,7 +269,6 @@ function EditorContent({ onBack }: EditorProps) {
   const [chatInput, setChatInput] = useState('');
   const [users, setUsers] = useState<string[]>([]);
   const [isChatting, setIsChatting] = useState(false);
-  
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isRefineMode, setIsRefineMode] = useState(false);
   const clientId = useRef(crypto.randomUUID());
@@ -231,19 +282,12 @@ function EditorContent({ onBack }: EditorProps) {
   } | null>(null);
 
   const [cursors, setCursors] = useState<Record<string, { x: number; y: number }>>({});
-  /**
-   * Controls the fullscreen/focus mode for the ReactFlow canvas.
-   * When `true`, the top navigation bar, bottom input bar, and right
-   * analysis sidebar are hidden so the graph canvas occupies the
-   * full viewport — giving the user an uncluttered editing experience.
-   * The user can exit focus mode via the toggle button or the Escape key.
-   */
   const [isFullscreen, setIsFullscreen] = useState(false);
 
   const codeCache = useRef(new Map<string, codeObject>());
   const reactFlowWrapper = useRef(null);
-  const fileInputRef = useRef<HTMLInputElement>(null); 
-  const { getNodes, getEdges, fitView } = useReactFlow(); 
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const { getNodes, getEdges, fitView } = useReactFlow();
 
   const copyTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const fitViewTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -254,74 +298,72 @@ function EditorContent({ onBack }: EditorProps) {
       if (fitViewTimeoutRef.current) clearTimeout(fitViewTimeoutRef.current);
     };
   }, []);
+
   const { getViewport } = useReactFlow();
 
- const nodeTypes = useMemo(() => ({
-  custom: CustomNode,
-}), []);
+  const nodeTypes = useMemo(() => ({
+    custom: CustomNode,
+  }), []);
 
   const edgeTypes = useMemo(() => ({}), []);
+
   const onNodesChange: OnNodesChange = useCallback((changes) => {
-  setNodes((nds) => {
-    const updatedNodes = applyNodeChanges(changes, nds);
+    setNodes((nds) => {
+      const updatedNodes = applyNodeChanges(changes, nds);
+      if (socketRef.current?.readyState === WebSocket.OPEN) {
+        socketRef.current.send(JSON.stringify({
+          type: "NODE_MOVE",
+          clientId: clientId.current,
+          nodes: updatedNodes
+        }));
+      }
+      return updatedNodes;
+    });
+  }, [edges]);
 
-    if (socketRef.current?.readyState === WebSocket.OPEN) {
-  socketRef.current.send(JSON.stringify({
-    type: "NODE_MOVE",
-    clientId: clientId.current,
-    nodes: updatedNodes
-  }));
-}
-    return updatedNodes;
-  });
-}, [edges]);
-  
   const onEdgesChange: OnEdgesChange = useCallback((changes) => {
-  setEdges((eds) => {
-    const updatedEdges = applyEdgeChanges(changes, eds);
-
-    if (socketRef.current?.readyState === WebSocket.OPEN) {
-      socketRef.current.send(
-        JSON.stringify({
-          type: "SYNC_GRAPH",
-          nodes,
-          edges: updatedEdges,
-        })
-      );
-    }
-
-    return updatedEdges;
-  });
-}, [nodes]);
+    setEdges((eds) => {
+      const updatedEdges = applyEdgeChanges(changes, eds);
+      if (socketRef.current?.readyState === WebSocket.OPEN) {
+        socketRef.current.send(
+          JSON.stringify({
+            type: "SYNC_GRAPH",
+            nodes,
+            edges: updatedEdges,
+          })
+        );
+      }
+      return updatedEdges;
+    });
+  }, [nodes]);
 
   const rafRef = useRef<number | null>(null);
   const socketRef = useRef<WebSocket | null>(null);
-  // Warn user before leaving with unsaved diagram
-useEffect(() => {
-  const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-    if (nodes.length > 0) {
-      e.preventDefault();
-      e.returnValue = '';
-    }
-  };
-  window.addEventListener('beforeunload', handleBeforeUnload);
-  return () => window.removeEventListener('beforeunload', handleBeforeUnload);
-}, [nodes]);
+
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (nodes.length > 0) {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [nodes]);
 
   const onMove = useCallback((_: any, vp: any) => {
-  if (rafRef.current) cancelAnimationFrame(rafRef.current);
-
-  rafRef.current = requestAnimationFrame(() => {
-    setViewport(vp);
-  });
-}, []);
+    if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    rafRef.current = requestAnimationFrame(() => {
+      setViewport(vp);
+    });
+  }, []);
 
   const generateGraph = async (text: string) => {
     if (!text || isGenerating) return;
     setIsGenerating(true);
     setPrompt(text);
     setGraphData(null);
-    setActiveTab('ANALYSIS'); 
+    setActiveTab('ANALYSIS');
     setCodeLanguage('Python');
     setChatHistory([]);
     setIsSidebarOpen(false);
@@ -329,11 +371,11 @@ useEffect(() => {
 
     try {
       const res = await fetch(`${BACKEND_URL}/generate`, {
-        method: 'POST', 
-        headers: { 'Content-Type': 'application/json' }, 
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ prompt: text }),
       });
-      
+
       if (!res.ok) {
         let errDetail = "";
         const bodyText = await res.text();
@@ -343,7 +385,7 @@ useEffect(() => {
         } catch {
           errDetail = bodyText;
         }
-        
+
         console.error("❌ [BACKEND ERROR]:", res.status, errDetail);
 
         let errorTitle = "System Error";
@@ -374,49 +416,50 @@ useEffect(() => {
 
         throw { title: errorTitle, message: errorMsg, type: errorType };
       }
-      
+
       const data = await res.json();
-      
+
       setGraphData(data);
       codeCache.current.clear();
       codeCache.current.set(codeLanguage, {code_snippet: data.code_snippet ?? '', code_explanation: data.code_explanation ?? ''});
-      
+
       const rawNodes: Node[] = data.nodes.map((n: { id: string; label: string }) => ({
         id: n.id, type: 'custom', data: { label: n.label }, position: { x: 0, y: 0 },
         style: { background: 'transparent', border: 'none', boxShadow: 'none', width: 'auto' },
       }));
-      thOptions: { borderRadius: 40, offset: 15 },
-        const rawEdges: Edge[] = data.edges.map((e: { source: string; target: string; label: string }, i: number) => ({
-  id: `e-${i}`,
-  source: e.source,
-  target: e.target,
-  label: e.label,
-  type: 'smoothstep',
-  markerEnd: {
-    type: MarkerType.ArrowClosed,
-    color: 'rgba(59, 130, 246, 0.7)',
-    width: 12,
-    height: 12
-  },
-  style: {
-    stroke: 'rgba(59, 130, 246, 0.4)',
-    strokeWidth: 1.5,
-    transition: 'stroke 0.3s ease'
-  },
-  labelStyle: {
-    fill: '#93c5fd',
-    fontWeight: 600,
-    fontSize: 10,
-    letterSpacing: '0.5px'
-  },
-  labelBgPadding: [8, 4],
-  labelBgBorderRadius: 6,
-  labelBgStyle: {
-    fill: 'rgba(15, 23, 42, 0.9)',
-    stroke: 'rgba(59, 130, 246, 0.2)',
-    strokeWidth: 1
-  },
-}));
+
+      const rawEdges: Edge[] = data.edges.map((e: { source: string; target: string; label: string }, i: number) => ({
+        id: `e-${i}`,
+        source: e.source,
+        target: e.target,
+        label: e.label,
+        type: 'smoothstep',
+        markerEnd: {
+          type: MarkerType.ArrowClosed,
+          color: 'rgba(59, 130, 246, 0.7)',
+          width: 12,
+          height: 12
+        },
+        style: {
+          stroke: 'rgba(59, 130, 246, 0.4)',
+          strokeWidth: 1.5,
+          transition: 'stroke 0.3s ease'
+        },
+        labelStyle: {
+          fill: '#93c5fd',
+          fontWeight: 600,
+          fontSize: 10,
+          letterSpacing: '0.5px'
+        },
+        labelBgPadding: [8, 4],
+        labelBgBorderRadius: 6,
+        labelBgStyle: {
+          fill: 'rgba(15, 23, 42, 0.9)',
+          stroke: 'rgba(59, 130, 246, 0.2)',
+          strokeWidth: 1
+        },
+      }));
+
       const { nodes: layoutedNodes, edges: layoutedEdges } = getLayoutedElements(rawNodes, rawEdges);
       const merged = mergeGraph(
         { nodes: layoutedNodes, edges: layoutedEdges },
@@ -427,10 +470,10 @@ useEffect(() => {
         setNodes(merged.nodes);
         setEdges(merged.edges);
       });
-      
+
       if (fitViewTimeoutRef.current) clearTimeout(fitViewTimeoutRef.current);
       fitViewTimeoutRef.current = setTimeout(() => fitView({ padding: 0.15, duration: 800 }), 150);
-      setIsSidebarOpen(true); 
+      setIsSidebarOpen(true);
 
     } catch (err: any) {
       console.error("🚨 [CRITICAL ERROR]:", err);
@@ -449,14 +492,14 @@ useEffect(() => {
       setIsGenerating(false);
     }
   };
-  
+
   const EVENT_TYPES = {
-  NODE_MOVE: "NODE_MOVE",
-  NODE_ADD: "NODE_ADD",
-  NODE_DELETE: "NODE_DELETE",
-  EDGE_ADD: "EDGE_ADD",
-  EDGE_DELETE: "EDGE_DELETE"
-};
+    NODE_MOVE: "NODE_MOVE",
+    NODE_ADD: "NODE_ADD",
+    NODE_DELETE: "NODE_DELETE",
+    EDGE_ADD: "EDGE_ADD",
+    EDGE_DELETE: "EDGE_DELETE"
+  };
 
   const regenerateCode = async (newLang: string) => {
     setCodeLanguage(newLang);
@@ -474,7 +517,7 @@ useEffect(() => {
         } catch {
           errDetail = bodyText;
         }
-        
+
         let errorTitle = "System Error";
         let errorMsg = "Failed to rewrite code.";
         let errorType: 'missing_key' | 'invalid_key' | 'rate_limit' | 'bad_request' | 'generic' = 'generic';
@@ -497,7 +540,7 @@ useEffect(() => {
       }
       const data = await res.json();
       setGraphData((prev: GraphData | null) => prev ? ({ ...prev, code_snippet: data.code_snippet, code_explanation: data.code_explanation }) : prev);
-    } catch (err: any) { 
+    } catch (err: any) {
       const title = err.title || "Rewriting Failed";
       const message = err.message || "Failed to rewrite code.";
       const type = err.type || "generic";
@@ -542,18 +585,19 @@ useEffect(() => {
   };
 
   const startListening = () => {
-  const SpeechAPI =
-    (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    const SpeechAPI =
+      (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
 
-  if (SpeechAPI) {
-    const recognition = new SpeechAPI();
-
+    if (SpeechAPI) {
+      const recognition = new SpeechAPI();
       recognition.continuous = false; recognition.lang = 'en-US'; setIsListening(true);
       recognition.onresult = (event: SpeechRecognitionEvent) => {
         const transcript = event.results[0][0].transcript;
         setPrompt(transcript); generateGraph(transcript); setIsListening(false);
       };
-      recognition.onerror = () => setIsListening(false); recognition.onend = () => setIsListening(false); recognition.start();
+      recognition.onerror = () => setIsListening(false);
+      recognition.onend = () => setIsListening(false);
+      recognition.start();
     } else { alert("Voice control requires Chrome/Edge."); }
   };
 
@@ -566,146 +610,109 @@ useEffect(() => {
 
   const handleCopyCode = () => {
     if (graphData?.code_snippet) {
-      navigator.clipboard.writeText(graphData.code_snippet); 
-      setCopied(true); 
+      navigator.clipboard.writeText(graphData.code_snippet);
+      setCopied(true);
       if (copyTimeoutRef.current) clearTimeout(copyTimeoutRef.current);
       copyTimeoutRef.current = setTimeout(() => setCopied(false), 2000);
     }
   };
 
-
   const showBackground = nodes.length === 0;
-  console.log("REACT STATE CHECK -> nodes:", nodes.length, "edges:", edges.length);
 
   const { x, y, zoom } = getViewport();
-
   const buffer = 500;
 
-  // Performance optimization: render only nodes within viewport bounds
-// to reduce rendering cost for large graphs
-
-const visibleNodes = useMemo(() => {
-  const vp = getViewport();
-  const { x, y, zoom } = vp;
-
-  return nodes.filter((node) => {
-    const screenX = node.position.x * zoom + x;
-    const screenY = node.position.y * zoom + y;
-
-    return (
-      screenX > -buffer &&
-      screenX < window.innerWidth + buffer &&
-      screenY > -buffer &&
-      screenY < window.innerHeight + buffer
-    );
-  });
-}, [nodes, viewport]);
-
-const visibleNodeIds = useMemo(() => {
-  return new Set(visibleNodes.map(n => n.id));
-}, [visibleNodes]);
-
-const filteredEdges = useMemo(() => {
-  return edges.filter(
-    (e) => visibleNodeIds.has(e.source) && visibleNodeIds.has(e.target)
-  );
-}, [edges, visibleNodeIds]);
-
-console.log(
-  "TOTAL:", nodes.length,
-  "VISIBLE:", visibleNodes.length
-);
-  console.log("VISIBLE CHECK:", visibleNodes.length);
-
-  console.log("VIEWPORT:", getViewport());
-
-  /**
-   * Registers a global `keydown` listener so pressing Escape exits
-   * focus mode. The listener is added only while `isFullscreen` is
-   * `true` and is cleaned up on unmount or when the flag changes,
-   * preventing stale closures and unnecessary event handling.
-   */
-
-  useEffect(() => {
-  const handleMouseMove = (e: MouseEvent) => {
-    if (socketRef.current?.readyState !== WebSocket.OPEN) return;
-
-    socketRef.current.send(JSON.stringify({
-      type: "CURSOR_MOVE",
-      clientId: clientId.current,
-      roomId: roomId.current,
-      position: {
-        x: e.clientX,
-        y: e.clientY
-      }
-    }));
-  };
-
-  window.addEventListener("mousemove", handleMouseMove);
-
-  return () => window.removeEventListener("mousemove", handleMouseMove);
-}, []);
-
-  useEffect(() => {
-  const socket = new WebSocket("ws://localhost:8000/ws");
-
-  socketRef.current = socket;
-
-  socket.onopen = () => {
-    console.log("Connected");
-
-    socket.send(JSON.stringify({
-  type: "USER_JOIN",
-  roomId: roomId.current,
-  clientId: clientId.current
-}));
-  };
-
-  socket.onmessage = (event) => {
-    const data = JSON.parse(event.data);
-    console.log("SOCKET EVENT:", event.data);
-
-    if (data.type === "NODE_MOVE") {
-      if (data.clientId === clientId.current) return;
-
-      setNodes((nds) =>
-        nds.map((node) =>
-          node.id === data.nodeId
-            ? { ...node, position: data.position }
-            : node
-        )
+  const visibleNodes = useMemo(() => {
+    const vp = getViewport();
+    const { x, y, zoom } = vp;
+    return nodes.filter((node) => {
+      const screenX = node.position.x * zoom + x;
+      const screenY = node.position.y * zoom + y;
+      return (
+        screenX > -buffer &&
+        screenX < window.innerWidth + buffer &&
+        screenY > -buffer &&
+        screenY < window.innerHeight + buffer
       );
-    }
+    });
+  }, [nodes, viewport]);
 
-    if (data.type === "SYNC_GRAPH") {
-      setNodes(data.nodes);
-      setEdges(data.edges);
-    }
+  const visibleNodeIds = useMemo(() => {
+    return new Set(visibleNodes.map(n => n.id));
+  }, [visibleNodes]);
 
-    if (data.type === "ROOM_USERS") {
-  setUsers(data.users);
-}
-  
+  const filteredEdges = useMemo(() => {
+    return edges.filter(
+      (e) => visibleNodeIds.has(e.source) && visibleNodeIds.has(e.target)
+    );
+  }, [edges, visibleNodeIds]);
 
-    if (data.type === "CURSOR_MOVE") {
-  const roomId = data.roomId;
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (socketRef.current?.readyState !== WebSocket.OPEN) return;
+      socketRef.current.send(JSON.stringify({
+        type: "CURSOR_MOVE",
+        clientId: clientId.current,
+        roomId: roomId.current,
+        position: { x: e.clientX, y: e.clientY }
+      }));
+    };
+    window.addEventListener("mousemove", handleMouseMove);
+    return () => window.removeEventListener("mousemove", handleMouseMove);
+  }, []);
 
-  setCursors((prev) => ({
-    ...prev,
-    [data.clientId]: data.position
-  }));
-}
+  useEffect(() => {
+    const socket = new WebSocket("ws://localhost:8000/ws");
+    socketRef.current = socket;
 
-  };
+    socket.onopen = () => {
+      console.log("Connected");
+      socket.send(JSON.stringify({
+        type: "USER_JOIN",
+        roomId: roomId.current,
+        clientId: clientId.current
+      }));
+    };
 
-  socket.onclose = () => {
-    console.log("Disconnected");
-  };
+    socket.onmessage = (event) => {
+      const data = JSON.parse(event.data);
 
-  return () => {
-    socket.close();
-  };
-}, []);
+      if (data.type === "NODE_MOVE") {
+        if (data.clientId === clientId.current) return;
+        setNodes((nds) =>
+          nds.map((node) =>
+            node.id === data.nodeId
+              ? { ...node, position: data.position }
+              : node
+          )
+        );
+      }
+
+      if (data.type === "SYNC_GRAPH") {
+        setNodes(data.nodes);
+        setEdges(data.edges);
+      }
+
+      if (data.type === "ROOM_USERS") {
+        setUsers(data.users);
+      }
+
+      if (data.type === "CURSOR_MOVE") {
+        setCursors((prev) => ({
+          ...prev,
+          [data.clientId]: data.position
+        }));
+      }
+    };
+
+    socket.onclose = () => {
+      console.log("Disconnected");
+    };
+
+    return () => {
+      socket.close();
+    };
+  }, []);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -716,13 +723,11 @@ console.log(
   }, [isFullscreen]);
 
   return (
-
     <div className="relative flex h-screen w-screen bg-black overflow-hidden font-sans text-slate-200">
-      
-      {/* 0. INJECT CSS FOR CONTROLS */}
+
       <style>{glassControlsStyle}</style>
 
-      {/* 1. THE 3D HOLOGRAPHIC BACKGROUND */}
+      {/* 3D holographic background — fades out once the graph is generated */}
       <div className={`absolute inset-0 transition-opacity duration-1000 z-0 ${showBackground ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
           <HolographicScene />
       </div>
@@ -730,10 +735,10 @@ console.log(
       <div className="absolute inset-0 bg-slate-950/20 pointer-events-none z-0" />
       {isGenerating && <LoadingCore />}
 
-      {/* 4. MAIN UI LAYER */}
+      {/* MAIN UI LAYER */}
       <div className="relative flex-1 h-full flex flex-col z-10" ref={reactFlowWrapper}>
-        
-        {/* TOP BAR — hidden in focus mode to maximise canvas real-estate */}
+
+        {/* TOP BAR */}
         {!isFullscreen && (
         <div className="absolute top-0 left-0 w-full p-6 z-40 flex justify-between items-center pointer-events-none">
           <button
@@ -743,14 +748,14 @@ console.log(
           >
             <ArrowLeft className="w-4 h-4" aria-hidden="true" /> <span className="font-mono text-xs tracking-widest">TERMINAL</span>
           </button>
-          
+
           <div className="flex gap-4 pointer-events-auto">
              <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-slate-900/60 backdrop-blur-md border border-white/10 text-xs font-mono text-emerald-400 shadow-lg">
                 <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"/> ONLINE
              </div>
 
              {graphData && (
-                 <button 
+                 <button
                     onClick={() => setIsSidebarOpen(!isSidebarOpen)}
                     aria-label={isSidebarOpen ? 'Close analysis panel' : 'Open analysis panel'}
                     aria-expanded={isSidebarOpen}
@@ -765,31 +770,17 @@ console.log(
         )}
 
         <div className="p-3 border-b border-white/10">
-  <div className="text-xs font-bold text-slate-400 mb-2">
-    ONLINE USERS
-  </div>
+          <div className="text-xs font-bold text-slate-400 mb-2">ONLINE USERS</div>
+          <div className="space-y-1">
+            {users.map((u) => (
+              <div key={u} className="text-xs text-emerald-400 bg-emerald-500/10 px-2 py-1 rounded">
+                {u}
+              </div>
+            ))}
+          </div>
+        </div>
 
-  <div className="space-y-1">
-    {users.map((u) => (
-      <div
-        key={u}
-        className="text-xs text-emerald-400 bg-emerald-500/10 px-2 py-1 rounded"
-      >
-        {u}
-      </div>
-    ))}
-  </div>
-</div>
-
-        {/*
-          FULLSCREEN / FOCUS MODE TOGGLE
-          Always visible (z-50) so the user can enter or exit focus mode
-          regardless of the current UI state. Renders at the top-right
-          corner of the canvas. The button label and icon swap between
-          Maximize2 / Minimize2 to clearly communicate the current state.
-          Keyboard shortcut: Escape (exit only) — handled by the
-          useEffect hook above.
-        */}
+        {/* Focus mode toggle */}
         <button
           onClick={() => setIsFullscreen(f => !f)}
           className="focus-ring absolute top-4 right-4 z-50 pointer-events-auto flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-900/60 backdrop-blur-md border border-white/10 text-xs font-mono text-slate-300 hover:bg-blue-600 hover:text-white hover:border-blue-500/50 transition-all shadow-lg"
@@ -800,10 +791,16 @@ console.log(
           {isFullscreen ? 'EXIT FOCUS' : 'FOCUS'}
         </button>
 
+        {/* Empty state: shown when no graph has been generated yet */}
+        {nodes.length === 0 && !isGenerating && <EmptyState />}
+
+        {/* Suggestion cards: shown on first load before any interaction */}
         {nodes.length === 0 && !isGenerating && <ZeroState onSelect={generateGraph} />}
+
+        {/* System log ticks in the bottom-left corner */}
         {nodes.length === 0 && !isGenerating && <SystemLogs />}
 
-        {/* MAIN GRAPH AREA */}
+        {/* MAIN GRAPH CANVAS */}
         <div className="flex-1 w-full h-full">
             <ReactFlow
               nodes={visibleNodes}
@@ -813,7 +810,7 @@ console.log(
               onEdgesChange={onEdgesChange}
               onMove={onMove}
               minZoom={0.1}
-      >
+            >
                 <Background
                     color="#94a3b8"
                     gap={40}
@@ -822,18 +819,16 @@ console.log(
                     className="opacity-[0.1]"
                 />
 
-                {/* Show controls only after graph generation */}
                 {nodes.length > 0 && <Controls />}
 
-                {/* Show minimap only after graph generation */}
                 {nodes.length > 0 && (
                     <MiniMap
                       className="!border-white/5"
                       nodeColor={(node) => {
                         const label = node.data?.label?.toLowerCase() || '';
-                        if (label.includes('start')) return '#10b981'; // emerald-500
-                        if (label.includes('end') || label.includes('accept') || label.includes('final')) return '#a855f7'; // purple-500
-                        return '#6366f1'; // indigo-500
+                        if (label.includes('start')) return '#10b981';
+                        if (label.includes('end') || label.includes('accept') || label.includes('final')) return '#a855f7';
+                        return '#6366f1';
                       }}
                       maskColor="rgba(15, 23, 42, 0.7)"
                       style={{
@@ -847,13 +842,13 @@ console.log(
             </ReactFlow>
         </div>
 
-        {/* INPUT BAR — hidden in focus mode so the canvas extends to the bottom edge */}
+        {/* INPUT BAR */}
         {!isFullscreen && (
         <div className="absolute bottom-10 left-1/2 -translate-x-1/2 w-[600px] z-50">
             <form onSubmit={(e) => { e.preventDefault(); generateGraph(prompt); }} className="relative group flex items-center gap-3 p-2 pl-4 rounded-full border border-white/10 bg-black/40 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.37)] focus-within:border-indigo-500/50 focus-within:ring-2 focus-within:ring-indigo-500/30 transition-all">
                 <Terminal size={18} className="text-indigo-400" />
                 <input type="text" placeholder="Describe a system..." value={prompt} onChange={(e) => setPrompt(e.target.value)} className="flex-1 bg-transparent text-white placeholder-slate-500 text-sm font-medium outline-none font-mono"/>
-                
+
                 <input type="file" ref={fileInputRef} className="hidden" accept=".txt,.json,.js,.py" onChange={handleFileUpload} />
                 <button type="button" onClick={() => fileInputRef.current?.click()} className="focus-ring p-2 rounded-full text-slate-400 hover:text-white hover:bg-white/10 transition-colors" title="Upload Problem File" aria-label="Upload problem file">
                     <Paperclip size={18} />
@@ -869,36 +864,34 @@ console.log(
                   </button>
                 )}
 
-                <button type="submit" disabled={isGenerating} className="px-6 py-2 rounded-full bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs tracking-widest transition-all shadow-lg shadow-blue-500/20">
-                    {isGenerating ? <span className="animate-pulse">PROCESSING</span> : (isRefineMode ? "REFINE" : "GENERATE")}
                 <button type="submit" disabled={isGenerating} className="px-6 py-2 rounded-full bg-gradient-to-r from-indigo-600 to-fuchsia-600 hover:from-indigo-500 hover:to-fuchsia-500 text-white font-bold text-xs tracking-widest transition-all shadow-lg shadow-indigo-500/30 border border-white/10">
-                    {isGenerating ? <span className="animate-pulse">PROCESSING</span> : "GENERATE"}
+                    {isGenerating ? <span className="animate-pulse">PROCESSING</span> : (isRefineMode ? "REFINE" : "GENERATE")}
                 </button>
             </form>
         </div>
         )}
       </div>
-      
-    {Object.entries(cursors).map(([id, pos]) => (
-  <div
-    key={id}
-    style={{
-      position: "absolute",
-      left: pos.x,
-      top: pos.y,
-      width: 10,
-      height: 10,
-      borderRadius: "50%",
-      background: "red",
-      pointerEvents: "none",
-      zIndex: 9999
-    }}
-  />
-))}
 
-      {/* RIGHT: SLIDING SIDEBAR — hidden in focus mode to give the canvas full width */}
+      {Object.entries(cursors).map(([id, pos]) => (
+        <div
+          key={id}
+          style={{
+            position: "absolute",
+            left: pos.x,
+            top: pos.y,
+            width: 10,
+            height: 10,
+            borderRadius: "50%",
+            background: "red",
+            pointerEvents: "none",
+            zIndex: 9999
+          }}
+        />
+      ))}
+
+      {/* RIGHT SIDEBAR */}
       {!isFullscreen && (
-      <div 
+      <div
         className={`border-l border-white/10 bg-slate-950/70 backdrop-blur-2xl flex flex-col shadow-2xl z-40 transition-all duration-500 ease-in-out overflow-hidden`}
         style={{ width: isSidebarOpen && graphData ? '450px' : '0px', opacity: isSidebarOpen && graphData ? 1 : 0 }}
       >
@@ -954,21 +947,20 @@ console.log(
                           onClick={() => setshowLanguageDropDown(p => !p)}
                           disabled={isRegeneratingCode}
                         >
-                          {codeLanguage} 
+                          {codeLanguage}
                           <ChevronDown size={12} className={`transition-transform ${showLanguageDropDown ? 'rotate-180' : ''}`} />
                           </button>
                         {showLanguageDropDown && (
                           <>
-                            <div 
-                              className="fixed inset-0 z-40" 
-                              onClick={() => setshowLanguageDropDown(false)} 
+                            <div
+                              className="fixed inset-0 z-40"
+                              onClick={() => setshowLanguageDropDown(false)}
                             />
-                            
                             <div className="absolute top-full left-0 mt-2 w-32 bg-slate-900 border border-slate-700 rounded-lg shadow-xl overflow-hidden z-50 animate-in fade-in zoom-in-95 duration-100">
                               {['Python', 'JavaScript', 'C++', 'Java'].map(lang => (
-                                <button 
-                                  key={lang} 
-                                  onClick={() => { regenerateCode(lang); setshowLanguageDropDown(false); }} 
+                                <button
+                                  key={lang}
+                                  onClick={() => { regenerateCode(lang); setshowLanguageDropDown(false); }}
                                   className="focus-ring w-full text-left px-4 py-2 text-xs text-slate-300 hover:bg-blue-600 hover:text-white transition-colors first:border-b-0"
                                 >
                                       {lang}
@@ -1028,9 +1020,9 @@ console.log(
                             )}
                         </div>
                         <form onSubmit={handleChatSubmit} className="mt-4 pt-4 border-t border-white/10 relative">
-                            <input 
-                                type="text" 
-                                placeholder="Type your question..." 
+                            <input
+                                type="text"
+                                placeholder="Type your question..."
                                 value={chatInput}
                                 onChange={(e) => setChatInput(e.target.value)}
                                 className="focus-ring w-full bg-slate-900/50 border border-white/10 rounded-lg pl-4 pr-10 py-3 text-xs text-white focus:border-blue-500 outline-none"
@@ -1042,7 +1034,7 @@ console.log(
                     </div>
                 )}
             </div>
-            
+
             <div className="p-6 border-t border-white/10 bg-slate-900/40 min-w-[450px]">
                 <div className="text-xs font-bold text-slate-500 uppercase mb-4 tracking-wider">Pro Capabilities</div>
                 <div className="grid grid-cols-2 gap-4">
@@ -1054,8 +1046,9 @@ console.log(
         )}
       </div>
       )}
+
       {errorState && (
-        <ErrorModal 
+        <ErrorModal
           show={errorState.show}
           title={errorState.title}
           message={errorState.message}
@@ -1065,7 +1058,7 @@ console.log(
             setErrorState(null);
             if (retryFn) retryFn();
           }}
-          onClose={() => setErrorState(null)} 
+          onClose={() => setErrorState(null)}
         />
       )}
     </div>
