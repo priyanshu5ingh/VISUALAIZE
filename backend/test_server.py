@@ -19,7 +19,9 @@ import main
 from main import app, ChatRequest, CodeRequest, GraphRequest
 
 # Create the test client
+app.state.limiter.enabled = False
 client = TestClient(app)
+
 
 # --- MOCK DATA ---
 MOCK_GRAPH = {
@@ -104,3 +106,71 @@ def test_post_routes_reject_get(route: str):
     """All POST-only routes should return 405 Method Not Allowed on GET."""
     response = client.get(route)
     assert response.status_code == 405
+
+def test_get_cache_key_normalizes_correctly():
+    """get_cache_key should lowercase, strip spaces and trailing punctuation."""
+    from main import get_cache_key
+    k1 = get_cache_key(" Test Prompt!!!  ")
+    k2 = get_cache_key("test prompt")
+    assert k1 == k2
+
+@patch.object(main, "get_smart_response")
+def test_generate_graph_uses_cache(mock_ai):
+    """Subsequent requests for the same prompt should hit the cache instead of calling AI."""
+    from main import cache
+    mock_ai.return_value = json.dumps(MOCK_GRAPH)
+    
+    # 1. Clear any existing key in cache
+    from main import get_cache_key
+    key = get_cache_key("cache test prompt")
+    if hasattr(cache, "_cache"):
+        cache._cache.pop(key, None)
+    else:
+        try:
+            cache.delete(key)
+        except Exception:
+            pass
+
+    # 2. Make first request - should hit mock_ai
+    response = client.post("/generate", json={"prompt": "cache test prompt"})
+    assert response.status_code == 200
+    assert mock_ai.call_count == 1
+
+    # 3. Make second request - should hit cache (so mock_ai call count remains 1)
+    response2 = client.post("/generate", json={"prompt": "cache test prompt"})
+    assert response2.status_code == 200
+    assert mock_ai.call_count == 1
+
+
+@patch.object(main, "get_smart_response")
+def test_generate_error_does_not_leak_detail(mock_ai):
+    """Error responses must not expose raw exception messages to the client."""
+    mock_ai.side_effect = RuntimeError("Internal connection string: redis://secret@host:6379")
+    response = client.post("/generate", json={"prompt": "trigger error"})
+    assert response.status_code == 500
+    body = response.json()
+    # The raw exception text must NOT appear in the response body
+    assert "redis" not in body.get("detail", "").lower()
+    assert "secret" not in body.get("detail", "").lower()
+    assert "Internal connection string" not in body.get("detail", "")
+
+
+@patch.object(main, "get_smart_response")
+def test_chat_error_does_not_leak_detail(mock_ai):
+    """Chat error responses must not expose raw exception messages."""
+    mock_ai.side_effect = RuntimeError("Raw internal error with traceback info")
+    response = client.post("/chat", json={"message": "hi", "context": "ctx"})
+    assert response.status_code == 500
+    body = response.json()
+    assert "Raw internal error" not in body.get("detail", "")
+
+
+def test_generate_no_api_key_returns_503():
+    """Missing GENAI_KEY must return 503, not 500."""
+    original_key = main.GENAI_KEY
+    try:
+        main.GENAI_KEY = None
+        response = client.post("/generate", json={"prompt": "test"})
+        assert response.status_code == 503
+    finally:
+        main.GENAI_KEY = original_key
