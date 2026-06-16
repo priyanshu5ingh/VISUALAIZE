@@ -30,7 +30,7 @@ export default function HistoryPanel({ isOpen, onClose, history, onLoad, onDelet
               HISTORY
             </div>
             <button
-              onClick={onClose}
+              onClick={onClose} aria-label="Close history panel"
               className="text-slate-400 hover:text-white transition-colors p-1"
             >
               <X size={18} />
@@ -44,9 +44,10 @@ export default function HistoryPanel({ isOpen, onClose, history, onLoad, onDelet
               </div>
             ) : (
               history.map((item) => (
-                <div
+                <button
                   key={item.id}
-                  className="group relative p-4 rounded-xl bg-white/5 border border-white/5 hover:border-blue-500/30 hover:bg-slate-800/80 transition-all cursor-pointer"
+                  type="button"
+                  className="group relative p-4 rounded-xl bg-white/5 border border-white/5 hover:border-blue-500/30 hover:bg-slate-800/80 transition-all cursor-pointer w-full text-left focus:outline-none focus:ring-2 focus:ring-blue-500/50"
                   onClick={() => onLoad(item)}
                 >
                   <div className="flex justify-between items-start mb-2">
@@ -56,11 +57,13 @@ export default function HistoryPanel({ isOpen, onClose, history, onLoad, onDelet
                     
                     {/* Delete Button - Only visible on hover */}
                     <button
+                      type="button"
+                      aria-label="Delete saved diagram"
                       onClick={(e) => {
                         e.stopPropagation(); // Don't trigger the load event
                         onDelete(item.id);
                       }}
-                      className="absolute top-4 right-4 text-slate-500 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
+                      className="absolute top-4 right-4 text-slate-500 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity focus:opacity-100 focus:outline-none"
                     >
                       <Trash2 size={14} />
                     </button>
@@ -74,7 +77,7 @@ export default function HistoryPanel({ isOpen, onClose, history, onLoad, onDelet
                     <Clock size={10} />
                     {new Date(item.timestamp).toLocaleString()}
                   </div>
-                </div>
+                </button>
               ))
             )}
           </div>
