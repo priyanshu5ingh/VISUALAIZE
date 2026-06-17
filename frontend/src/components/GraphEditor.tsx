@@ -287,6 +287,50 @@ function EditorContent({ onBack }: EditorProps) {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [savedHistory, setSavedHistory] = useState<SavedDiagram[]>([]);
+  const [contextMenu, setContextMenu] = useState<{
+    visible: boolean;
+    x: number;
+    y: number;
+    nodeId: string | null;
+  }>({ visible: false, x: 0, y: 0, nodeId: null });
+
+  const NODE_COLORS = [
+    { label: 'Default', value: '' },
+    { label: 'Emerald', value: 'emerald' },
+    { label: 'Purple', value: 'purple' },
+    { label: 'Amber', value: 'amber' },
+    { label: 'Rose', value: 'rose' },
+    { label: 'Cyan', value: 'cyan' },
+  ];
+
+  const handleNodeContextMenu = useCallback(
+    (e: React.MouseEvent, node: Node) => {
+      e.preventDefault();
+      setContextMenu({ visible: true, x: e.clientX, y: e.clientY, nodeId: node.id });
+    },
+    []
+  );
+
+  const handleColorSelect = useCallback((color: string) => {
+    setNodes((nds) =>
+      nds.map((n) =>
+        n.id === contextMenu.nodeId
+          ? { ...n, data: { ...n.data, nodeColor: color } }
+          : n
+      )
+    );
+    setContextMenu({ visible: false, x: 0, y: 0, nodeId: null });
+  }, [contextMenu.nodeId]);
+
+  useEffect(() => {
+    const handleClickOutside = () => {
+      if (contextMenu.visible) {
+        setContextMenu({ visible: false, x: 0, y: 0, nodeId: null });
+      }
+    };
+    window.addEventListener('click', handleClickOutside);
+    return () => window.removeEventListener('click', handleClickOutside);
+  }, [contextMenu.visible]);
 
   useEffect(() => {
     setSavedHistory(getHistory());
@@ -854,6 +898,7 @@ function EditorContent({ onBack }: EditorProps) {
               onNodesChange={onNodesChange}
               onEdgesChange={onEdgesChange}
               onMove={onMove}
+              onNodeContextMenu={handleNodeContextMenu}
               minZoom={0.1}
             >
                 <Background
@@ -901,6 +946,11 @@ function EditorContent({ onBack }: EditorProps) {
                     <MiniMap
                       className="!border-white/5"
                       nodeColor={(node) => {
+                        const customColor = node.data?.nodeColor;
+                        if (customColor) {
+                          const colorMap: Record<string, string> = { emerald: '#10b981', purple: '#a855f7', amber: '#f59e0b', rose: '#f43f5e', cyan: '#06b6d4' };
+                          if (colorMap[customColor]) return colorMap[customColor];
+                        }
                         const label = node.data?.label?.toLowerCase() || '';
                         if (label.includes('start')) return '#10b981';
                         if (label.includes('end') || label.includes('accept') || label.includes('final')) return '#a855f7';
@@ -964,6 +1014,33 @@ function EditorContent({ onBack }: EditorProps) {
           }}
         />
       ))}
+
+      {contextMenu.visible && (
+        <div
+          className="fixed z-[9999] bg-slate-900/95 backdrop-blur-xl border border-white/10 rounded-xl p-2 shadow-2xl animate-in fade-in zoom-in-95 duration-100"
+          style={{ left: contextMenu.x, top: contextMenu.y }}
+        >
+          <p className="text-[10px] uppercase tracking-widest text-slate-500 font-bold px-2 py-1.5">Node Color</p>
+          <div className="flex gap-1.5 p-1">
+            {NODE_COLORS.map((c) => (
+              <button
+                key={c.value}
+                onClick={() => handleColorSelect(c.value)}
+                className={`w-7 h-7 rounded-full border-2 transition-all hover:scale-125 ${
+                  c.value === '' ? 'border-slate-500 bg-slate-700' :
+                  c.value === 'emerald' ? 'border-emerald-400 bg-emerald-500/30' :
+                  c.value === 'purple' ? 'border-purple-400 bg-purple-500/30' :
+                  c.value === 'amber' ? 'border-amber-400 bg-amber-500/30' :
+                  c.value === 'rose' ? 'border-rose-400 bg-rose-500/30' :
+                  'border-cyan-400 bg-cyan-500/30'
+                }`}
+                title={c.label}
+                aria-label={`Set node color to ${c.label}`}
+              />
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* RIGHT SIDEBAR */}
       {!isFullscreen && (
