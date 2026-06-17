@@ -30,6 +30,7 @@ import CustomNode from '../components/CustomNode';
 import { mergeGraph } from '../utils/mergeGraph';
 import HolographicScene from './HolographicScene';
 import { flushSync } from 'react-dom';
+import { toast } from 'sonner';
 import ErrorModal from './ErrorModal';
 import LoadingCore from './LoadingCore';
 
@@ -626,20 +627,22 @@ function EditorContent({ onBack }: EditorProps) {
       recognition.onerror = () => setIsListening(false);
       recognition.onend = () => setIsListening(false);
       recognition.start();
-    } else { alert("Voice control requires Chrome/Edge."); }
+    } else { toast.error("Voice control requires Chrome/Edge."); }
   };
 
   const handleExport = () => {
     if (reactFlowWrapper.current === null) return;
     toPng(reactFlowWrapper.current, { backgroundColor: '#020617' }).then((dataUrl) => {
         const link = document.createElement('a'); link.download = 'visualaize-graph.png'; link.href = dataUrl; link.click();
-    });
+        toast.success('Graph exported as PNG');
+    }).catch(() => toast.error('Failed to export graph'));
   };
 
   const handleCopyCode = () => {
     if (graphData?.code_snippet) {
       navigator.clipboard.writeText(graphData.code_snippet);
       setCopied(true);
+      toast.success('Code copied to clipboard');
       if (copyTimeoutRef.current) clearTimeout(copyTimeoutRef.current);
       copyTimeoutRef.current = setTimeout(() => setCopied(false), 2000);
     }
