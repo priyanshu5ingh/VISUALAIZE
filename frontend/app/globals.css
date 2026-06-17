@@ -63,6 +63,12 @@ body {
   border-radius: inherit;
 }
 
+@keyframes edgeDashFlow {
+  to {
+    stroke-dashoffset: -10;
+  }
+}
+
 /* ReactFlow built-in controls panel — targets buttons we cannot Tailwind-patch */
 .react-flow__controls-button:focus-visible {
   position: relative !important;

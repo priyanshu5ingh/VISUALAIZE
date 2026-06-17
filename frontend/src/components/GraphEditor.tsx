@@ -27,6 +27,7 @@ import ReactFlow, {
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import CustomNode from '../components/CustomNode';
+import AnimatedEdge from '../components/AnimatedEdge';
 import { mergeGraph } from '../utils/mergeGraph';
 import HolographicScene from './HolographicScene';
 import { flushSync } from 'react-dom';
@@ -273,6 +274,7 @@ function EditorContent({ onBack }: EditorProps) {
   const [isChatting, setIsChatting] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isRefineMode, setIsRefineMode] = useState(false);
+  const [isEdgeAnimating, setIsEdgeAnimating] = useState(true);
   const clientId = useRef(crypto.randomUUID());
   const roomId = useRef("room_1");
   const [errorState, setErrorState] = useState<{
@@ -313,7 +315,7 @@ function EditorContent({ onBack }: EditorProps) {
     custom: CustomNode,
   }), []);
 
-  const edgeTypes = useMemo(() => ({}), []);
+  const edgeTypes = useMemo(() => ({ animated: AnimatedEdge }), []);
 
   const onNodesChange: OnNodesChange = useCallback((changes) => {
     setNodes((nds) => {
@@ -441,30 +443,17 @@ function EditorContent({ onBack }: EditorProps) {
         source: e.source,
         target: e.target,
         label: e.label,
-        type: 'smoothstep',
+        type: 'animated',
+        data: { animated: isEdgeAnimating },
         markerEnd: {
           type: MarkerType.ArrowClosed,
-          color: 'rgba(59, 130, 246, 0.7)',
-          width: 12,
-          height: 12
+          color: 'rgba(99, 102, 241, 0.6)',
+          width: 10,
+          height: 10
         },
         style: {
-          stroke: 'rgba(59, 130, 246, 0.4)',
+          stroke: 'rgba(99, 102, 241, 0.3)',
           strokeWidth: 1.5,
-          transition: 'stroke 0.3s ease'
-        },
-        labelStyle: {
-          fill: '#93c5fd',
-          fontWeight: 600,
-          fontSize: 10,
-          letterSpacing: '0.5px'
-        },
-        labelBgPadding: [8, 4],
-        labelBgBorderRadius: 6,
-        labelBgStyle: {
-          fill: 'rgba(15, 23, 42, 0.9)',
-          stroke: 'rgba(59, 130, 246, 0.2)',
-          strokeWidth: 1
         },
       }));
 
@@ -809,6 +798,24 @@ function EditorContent({ onBack }: EditorProps) {
                     {isSidebarOpen ? <PanelRightClose size={14} aria-hidden="true" /> : <PanelRightOpen size={14} aria-hidden="true" />}
                     {isSidebarOpen ? 'CLOSE PANEL' : 'OPEN PANEL'}
                  </button>
+             )}
+
+             {graphData && (
+               <button
+                 onClick={() => {
+                   setIsEdgeAnimating(!isEdgeAnimating);
+                   setEdges(eds => eds.map(e => ({ ...e, data: { ...e.data, animated: !isEdgeAnimating } })));
+                 }}
+                 className={`focus-ring flex items-center gap-2 px-3 py-1 rounded-full border text-xs transition-all shadow-lg ${
+                   isEdgeAnimating
+                     ? 'bg-indigo-600/80 border-indigo-500/50 text-white'
+                     : 'bg-slate-800/80 border-white/10 text-slate-300 hover:bg-blue-600 hover:text-white'
+                 }`}
+                 title={isEdgeAnimating ? 'Pause edge animation' : 'Play edge animation'}
+                 aria-label={isEdgeAnimating ? 'Pause edge animation' : 'Play edge animation'}
+               >
+                 {isEdgeAnimating ? <Zap size={14} /> : <Zap size={14} className="opacity-50" />}
+               </button>
              )}
           </div>
         </div>
