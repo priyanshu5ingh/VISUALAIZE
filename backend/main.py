@@ -346,9 +346,12 @@ Strict JSON Schema:
   "explanation": "Brief explanation",
   "execution_trace": "Step-by-step logic trace",
   "code_snippet": "Python code representation",
+  "filename_slug": "3-4-word-slug-with-hyphens",
   "nodes": [{"id": "1", "label": "Start"}],
   "edges": [{"source": "1", "target": "2", "label": "next"}]
 }
+
+"filename_slug" MUST be a concise 3-4 word slug with hyphens (e.g. "aws-microservices-auth-flow") summarizing the prompt. Use lowercase, hyphens, no spaces.
 
 IMPORTANT: You MUST return perfectly valid JSON. 
 All backslashes in code_snippet or strings MUST be properly double-escaped (e.g. \\n, \\t).

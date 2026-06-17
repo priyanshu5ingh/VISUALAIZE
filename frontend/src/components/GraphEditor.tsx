@@ -43,6 +43,7 @@ interface GraphData {
   example_input?: string;
   code_snippet: string;
   code_explanation?: string;
+  filename_slug?: string;
   nodes: { id: string; label: string }[];
   edges: { source: string; target: string; label: string }[];
 }
@@ -631,8 +632,9 @@ function EditorContent({ onBack }: EditorProps) {
 
   const handleExport = () => {
     if (reactFlowWrapper.current === null) return;
+    const slug = graphData?.filename_slug || 'visualaize-graph';
     toPng(reactFlowWrapper.current, { backgroundColor: '#020617' }).then((dataUrl) => {
-        const link = document.createElement('a'); link.download = 'visualaize-graph.png'; link.href = dataUrl; link.click();
+        const link = document.createElement('a'); link.download = `${slug}.png`; link.href = dataUrl; link.click();
     });
   };
 
