@@ -35,6 +35,12 @@ import LoadingCore from './LoadingCore';
 
 interface EditorProps { onBack: () => void; }
 
+interface GraphNodeData {
+  id: string;
+  label: string;
+  subgraph?: { nodes: GraphNodeData[]; edges: { source: string; target: string; label: string }[] };
+}
+
 interface GraphData {
   title: string;
   summary: string;
@@ -43,7 +49,7 @@ interface GraphData {
   example_input?: string;
   code_snippet: string;
   code_explanation?: string;
-  nodes: { id: string; label: string }[];
+  nodes: GraphNodeData[];
   edges: { source: string; target: string; label: string }[];
 }
 
@@ -287,6 +293,8 @@ function EditorContent({ onBack }: EditorProps) {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [savedHistory, setSavedHistory] = useState<SavedDiagram[]>([]);
+  const [graphStack, setGraphStack] = useState<{ label: string; nodes: Node[]; edges: Edge[] }[]>([]);
+  const [currentGraphTitle, setCurrentGraphTitle] = useState<string>('');
 
   useEffect(() => {
     setSavedHistory(getHistory());
@@ -431,8 +439,8 @@ function EditorContent({ onBack }: EditorProps) {
       codeCache.current.clear();
       codeCache.current.set(codeLanguage, {code_snippet: data.code_snippet ?? '', code_explanation: data.code_explanation ?? ''});
 
-      const rawNodes: Node[] = data.nodes.map((n: { id: string; label: string }) => ({
-        id: n.id, type: 'custom', data: { label: n.label }, position: { x: 0, y: 0 },
+      const rawNodes: Node[] = data.nodes.map((n: GraphNodeData) => ({
+        id: n.id, type: 'custom', data: { label: n.label, hasSubgraph: !!n.subgraph }, position: { x: 0, y: 0 },
         style: { background: 'transparent', border: 'none', boxShadow: 'none', width: 'auto' },
       }));
 
@@ -750,6 +758,57 @@ function EditorContent({ onBack }: EditorProps) {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isFullscreen]);
 
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const label = (e as CustomEvent).detail;
+      const rawGraphData = graphData;
+      if (!rawGraphData) return;
+      const rawNode = rawGraphData.nodes.find(n => n.label === label);
+      if (!rawNode?.subgraph) return;
+      const subNodes: Node[] = rawNode.subgraph.nodes.map((n, i) => ({
+        id: `sub-${i}`,
+        type: 'custom',
+        data: { label: n.label, hasSubgraph: !!n.subgraph },
+        position: { x: 0, y: 0 },
+        style: { background: 'transparent', border: 'none', boxShadow: 'none', width: 'auto' },
+      }));
+      const subEdges: Edge[] = rawNode.subgraph.edges.map((e, i) => ({
+        id: `sube-${i}`,
+        source: `sub-${rawNode.subgraph!.nodes.findIndex(n => n.id === e.source)}`,
+        target: `sub-${rawNode.subgraph!.nodes.findIndex(n => n.id === e.target)}`,
+        label: e.label,
+        type: 'smoothstep',
+        markerEnd: { type: MarkerType.ArrowClosed, color: 'rgba(59, 130, 246, 0.7)', width: 12, height: 12 },
+        style: { stroke: 'rgba(59, 130, 246, 0.4)', strokeWidth: 1.5 },
+        labelStyle: { fill: '#93c5fd', fontWeight: 600, fontSize: 10, letterSpacing: '0.5px' },
+        labelBgPadding: [8, 4], labelBgBorderRadius: 6,
+        labelBgStyle: { fill: 'rgba(15, 23, 42, 0.9)', stroke: 'rgba(59, 130, 246, 0.2)', strokeWidth: 1 },
+      }));
+      const { nodes: layoutedSubNodes } = getLayoutedElements(subNodes, subEdges);
+      setGraphStack(prev => [...prev, { label, nodes, edges }]);
+      flushSync(() => {
+        setNodes(layoutedSubNodes);
+        setEdges(subEdges);
+      });
+      requestAnimationFrame(() => fitView({ padding: 0.15, duration: 800 }));
+    };
+    window.addEventListener('expand-subgraph', handler);
+    return () => window.removeEventListener('expand-subgraph', handler);
+  }, [graphData, nodes, edges]);
+
+  const handleCollapse = useCallback(() => {
+    setGraphStack(prev => {
+      if (prev.length === 0) return prev;
+      const parent = prev[prev.length - 1];
+      flushSync(() => {
+        setNodes(parent.nodes);
+        setEdges(parent.edges);
+      });
+      requestAnimationFrame(() => fitView({ padding: 0.15, duration: 800 }));
+      return prev.slice(0, -1);
+    });
+  }, []);
+
   return (
     <div className="relative flex h-screen w-screen bg-black overflow-hidden font-sans text-slate-200">
 
@@ -824,6 +883,41 @@ function EditorContent({ onBack }: EditorProps) {
             ))}
           </div>
         </div>
+
+        {/* Breadcrumb navigation for sub-graphs */}
+        {graphStack.length > 0 && (
+          <div className="absolute top-20 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 px-4 py-2 rounded-full bg-slate-900/80 backdrop-blur-xl border border-white/10 shadow-lg pointer-events-auto">
+            {graphStack.map((entry, i) => (
+              <React.Fragment key={i}>
+                {i > 0 && <ChevronDown size={12} className="text-slate-600 -rotate-90" />}
+                <button
+                  onClick={() => {
+                    const target = graphStack[i];
+                    setGraphStack(prev => prev.slice(0, i));
+                    flushSync(() => {
+                      setNodes(target.nodes);
+                      setEdges(target.edges);
+                    });
+                    requestAnimationFrame(() => fitView({ padding: 0.15, duration: 800 }));
+                  }}
+                  className="text-xs font-mono text-slate-300 hover:text-white transition-colors px-2 py-0.5 rounded hover:bg-white/10"
+                >
+                  {entry.label}
+                </button>
+              </React.Fragment>
+            ))}
+            <ChevronDown size={12} className="text-slate-600 -rotate-90" />
+            <span className="text-xs font-mono text-amber-400">{graphData?.title || 'Current'}</span>
+            <button
+              onClick={handleCollapse}
+              className="ml-2 p-1 rounded-full hover:bg-white/10 text-slate-400 hover:text-white transition-colors"
+              title="Collapse sub-graph"
+              aria-label="Go back to parent graph"
+            >
+              <X size={12} />
+            </button>
+          </div>
+        )}
 
         {/* Focus mode toggle */}
         <button
