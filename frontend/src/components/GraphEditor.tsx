@@ -10,7 +10,8 @@ import {
   Activity, BookOpen, PlayCircle, Layers, Code, Copy, Check, Zap,
   Globe, Mic, Download, ChevronDown, MessageSquare, Send, Paperclip,
   PanelRightClose, PanelRightOpen, AlertTriangle, ArrowRight, X, RefreshCw,
-  Maximize2, Minimize2, ZoomIn, ZoomOut, Maximize, Lock, Unlock, History
+  Maximize2, Minimize2, ZoomIn, ZoomOut, Maximize, Lock, Unlock, History,
+  Plus, Minus
 } from 'lucide-react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import ReactFlow, {
@@ -287,6 +288,9 @@ function EditorContent({ onBack }: EditorProps) {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [savedHistory, setSavedHistory] = useState<SavedDiagram[]>([]);
+  const [diffMode, setDiffMode] = useState(false);
+  const [previousNodes, setPreviousNodes] = useState<Node[]>([]);
+  const [previousEdges, setPreviousEdges] = useState<Edge[]>([]);
 
   useEffect(() => {
     setSavedHistory(getHistory());
@@ -368,6 +372,10 @@ function EditorContent({ onBack }: EditorProps) {
 
   const generateGraph = async (text: string) => {
     if (!text || isGenerating) return;
+    if (isRefineMode && nodes.length > 0) {
+      setPreviousNodes(nodes);
+      setPreviousEdges(edges);
+    }
     setIsGenerating(true);
     setPrompt(text);
     setGraphData(null);
@@ -469,18 +477,48 @@ function EditorContent({ onBack }: EditorProps) {
       }));
 
       const { nodes: layoutedNodes, edges: layoutedEdges } = getLayoutedElements(rawNodes, rawEdges);
-      
-      const merged = mergeGraph(
-        { nodes: layoutedNodes, edges: layoutedEdges },
-        { nodes: getNodes(), edges: getEdges() },
-        isRefineMode
-      );
-      flushSync(() => {
-        setNodes(merged.nodes);
-        setEdges(merged.edges);
-      });
 
-      const newEntry = saveToHistory(text, data, merged.nodes, merged.edges);
+      let finalNodes: Node[] = layoutedNodes;
+      let finalEdges: Edge[] = layoutedEdges;
+
+      if (isRefineMode && previousNodes.length > 0) {
+        const prevIds = new Set(previousNodes.map(n => n.id));
+        const newIds = new Set(layoutedNodes.map(n => n.id));
+        const removedNodes = previousNodes.filter(n => !newIds.has(n.id));
+
+        const diffNodes = [
+          ...layoutedNodes.map(n => ({
+            ...n,
+            data: { ...n.data, _diffStatus: prevIds.has(n.id) ? ('unchanged' as const) : ('added' as const) }
+          })),
+          ...removedNodes.map(n => ({
+            ...n,
+            data: { ...n.data, _diffStatus: 'removed' as const },
+            style: { ...n.style, opacity: 0.5 }
+          }))
+        ];
+        finalNodes = diffNodes;
+        finalEdges = layoutedEdges;
+        flushSync(() => {
+          setNodes(diffNodes);
+          setEdges(layoutedEdges);
+        });
+        setDiffMode(true);
+      } else {
+        const merged = mergeGraph(
+          { nodes: layoutedNodes, edges: layoutedEdges },
+          { nodes: getNodes(), edges: getEdges() },
+          isRefineMode
+        );
+        finalNodes = merged.nodes;
+        finalEdges = merged.edges;
+        flushSync(() => {
+          setNodes(merged.nodes);
+          setEdges(merged.edges);
+        });
+      }
+
+      const newEntry = saveToHistory(text, data, finalNodes, finalEdges);
       if (newEntry) {
         setSavedHistory(prev => [newEntry, ...prev].slice(0, 20));
       }
@@ -824,6 +862,42 @@ function EditorContent({ onBack }: EditorProps) {
             ))}
           </div>
         </div>
+
+        {/* Diff mode overlay */}
+        {diffMode && (
+          <div className="absolute top-4 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 px-5 py-2 rounded-full bg-slate-900/90 backdrop-blur-xl border border-white/10 shadow-2xl pointer-events-auto">
+            <span className="text-xs font-bold text-white tracking-wider">DIFF MODE</span>
+            <div className="flex items-center gap-2 text-[10px]">
+              <span className="flex items-center gap-1 text-emerald-400"><Plus size={12} /> New</span>
+              <span className="flex items-center gap-1 text-red-400"><Minus size={12} /> Removed</span>
+            </div>
+            <div className="w-px h-4 bg-white/10" />
+            <button
+              onClick={() => {
+                setDiffMode(false);
+                setNodes(nds => nds.filter(n => n.data?._diffStatus !== 'removed').map(n => ({ ...n, data: { label: n.data?.label }, style: { background: 'transparent', border: 'none', boxShadow: 'none', width: 'auto' } })));
+                setPreviousNodes([]);
+                setPreviousEdges([]);
+                setGraphData(graphData);
+              }}
+              className="px-3 py-1 rounded-full bg-emerald-500 text-white text-xs font-bold hover:bg-emerald-400 transition-colors"
+            >
+              Accept
+            </button>
+            <button
+              onClick={() => {
+                setDiffMode(false);
+                flushSync(() => { setNodes(previousNodes); setEdges(previousEdges); });
+                setPreviousNodes([]);
+                setPreviousEdges([]);
+                requestAnimationFrame(() => fitView({ padding: 0.15, duration: 500 }));
+              }}
+              className="px-3 py-1 rounded-full bg-red-500/20 text-red-400 text-xs font-bold hover:bg-red-500/30 transition-colors border border-red-500/30"
+            >
+              Reject
+            </button>
+          </div>
+        )}
 
         {/* Focus mode toggle */}
         <button
