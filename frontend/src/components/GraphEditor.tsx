@@ -30,6 +30,7 @@ import CustomNode from '../components/CustomNode';
 import { mergeGraph } from '../utils/mergeGraph';
 import HolographicScene from './HolographicScene';
 import { flushSync } from 'react-dom';
+import ReactMarkdown from 'react-markdown';
 import ErrorModal from './ErrorModal';
 import LoadingCore from './LoadingCore';
 
@@ -998,7 +999,9 @@ function EditorContent({ onBack }: EditorProps) {
                     </div>
                     <div>
                         <div className="flex items-center gap-2 mb-4 text-sm font-semibold text-white border-b border-white/5 pb-2"><BookOpen size={16} className="text-purple-400" /> System Logic</div>
-                        <div className="text-sm text-slate-400 leading-relaxed space-y-4">{graphData.explanation}</div>
+                        <div className="text-sm text-slate-400 leading-relaxed space-y-4 prose prose-invert prose-sm max-w-none">
+                          <ReactMarkdown>{graphData.explanation}</ReactMarkdown>
+                        </div>
                     </div>
                     <div className="rounded-xl overflow-hidden border border-white/10 bg-black/40">
                         <div className="px-4 py-2 bg-white/5 border-b border-white/5 flex justify-between items-center">
