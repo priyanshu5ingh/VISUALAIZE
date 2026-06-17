@@ -524,6 +524,13 @@ function EditorContent({ onBack }: EditorProps) {
     setIsSidebarOpen(true);
   };
 
+  const handleAutoLayout = useCallback(() => {
+    const { nodes: layoutedNodes, edges: layoutedEdges } = getLayoutedElements(nodes, edges);
+    setNodes(layoutedNodes);
+    setEdges(layoutedEdges);
+    setTimeout(() => fitView({ padding: 0.15, duration: 500 }), 50);
+  }, [nodes, edges, setNodes, setEdges, fitView]);
+
   const handleDeleteHistory = (id: string) => {
     const updated = deleteFromHistory(id);
     if (updated) setSavedHistory(updated);
@@ -893,6 +900,13 @@ function EditorContent({ onBack }: EditorProps) {
                       aria-label="Toggle interactive"
                     >
                       <Lock size={14} />
+                    </ControlButton>
+                    <ControlButton
+                      onClick={handleAutoLayout}
+                      title="Auto-Layout (reorganize nodes)"
+                      aria-label="Auto-Layout"
+                    >
+                      <Layers size={14} />
                     </ControlButton>
                   </Controls>
                 )}
