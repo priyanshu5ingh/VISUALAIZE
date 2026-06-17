@@ -174,3 +174,40 @@ def test_generate_no_api_key_returns_503():
         assert response.status_code == 503
     finally:
         main.GENAI_KEY = original_key
+
+@patch.object(main, "get_smart_response")
+def test_chat_empty_message(mock_ai):
+    """POST /chat with empty message should not crash the server."""
+    mock_ai.return_value = "reply"
+    with patch("main.GENAI_KEY", "mock_key_for_testing"):
+        response = client.post("/chat", json={"message": "", "context": "ctx"})
+        assert response.status_code in (200, 422)
+
+@patch.object(main, "get_smart_response")
+def test_regenerate_code_empty_prompt(mock_ai):
+    """POST /regenerate_code with empty prompt should not crash the server."""
+    mock_ai.return_value = "```python\nx = 1\n```"
+    with patch("main.GENAI_KEY", "mock_key_for_testing"):
+        response = client.post("/regenerate_code", json={"prompt": "", "language": "Python"})
+        assert response.status_code in (200, 422)
+
+@patch.object(main, "get_smart_response")
+def test_regenerate_code_error_does_not_leak_detail(mock_ai):
+    """regenerate_code error responses must not expose raw exception messages."""
+    mock_ai.side_effect = RuntimeError("Internal secret key: sk-abc123")
+    with patch("main.GENAI_KEY", "mock_key_for_testing"):
+        response = client.post("/regenerate_code", json={"prompt": "test", "language": "Python"})
+        assert response.status_code == 500
+        body = response.json()
+        assert "sk-abc123" not in body.get("detail", "")
+        assert "secret key" not in body.get("detail", "").lower()
+
+@patch.object(main, "get_smart_response")
+def test_chat_long_message(mock_ai):
+    """POST /chat with a long message should still return a reply."""
+    mock_ai.return_value = "Long context reply."
+    with patch("main.GENAI_KEY", "mock_key_for_testing"):
+        long_msg = "word " * 500
+        response = client.post("/chat", json={"message": long_msg, "context": "ctx"})
+        assert response.status_code == 200
+        assert "reply" in response.json()
