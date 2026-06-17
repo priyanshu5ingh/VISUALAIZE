@@ -899,6 +899,8 @@ function EditorContent({ onBack }: EditorProps) {
 
                 {nodes.length > 0 && (
                     <MiniMap
+                      pannable
+                      zoomable
                       className="!border-white/5"
                       nodeColor={(node) => {
                         const label = node.data?.label?.toLowerCase() || '';
