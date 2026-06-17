@@ -13,6 +13,7 @@ import {
   Maximize2, Minimize2, ZoomIn, ZoomOut, Maximize, Lock, Unlock, History
 } from 'lucide-react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useSettings } from './SettingsProvider';
 import ReactFlow, {
   applyEdgeChanges, applyNodeChanges,
   Background, BackgroundVariant, Controls, ControlButton,
@@ -265,14 +266,9 @@ function EditorContent({ onBack }: EditorProps) {
   const [copied, setCopied] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [codeLanguage, setCodeLanguage] = useState('Python');
-  const [showLanguageDropDown, setshowLanguageDropDown] = useState(false);
   const [isRegeneratingCode, setIsRegeneratingCode] = useState(false);
-  const [chatHistory, setChatHistory] = useState<{role: 'user' | 'ai', text: string}[]>([]);
-  const [chatInput, setChatInput] = useState('');
-  const [users, setUsers] = useState<string[]>([]);
-  const [isChatting, setIsChatting] = useState(false);
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isRefineMode, setIsRefineMode] = useState(false);
+  const settings = useSettings();
   const clientId = useRef(crypto.randomUUID());
   const roomId = useRef("room_1");
   const [errorState, setErrorState] = useState<{
@@ -287,6 +283,7 @@ function EditorContent({ onBack }: EditorProps) {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [savedHistory, setSavedHistory] = useState<SavedDiagram[]>([]);
+  const [showSettings, setShowSettings] = useState(false);
 
   useEffect(() => {
     setSavedHistory(getHistory());
@@ -751,9 +748,12 @@ function EditorContent({ onBack }: EditorProps) {
   }, [isFullscreen]);
 
   return (
-    <div className="relative flex h-screen w-screen bg-black overflow-hidden font-sans text-slate-200">
+    <div className={`relative flex h-screen w-screen bg-black overflow-hidden font-sans text-slate-200 ${settings.disableAnimations ? 'reduce-animation' : ''}`}>
 
       <style>{glassControlsStyle}</style>
+      {settings.disableAnimations && (
+        <style>{`.reduce-animation *, .reduce-animation *::before, .reduce-animation *::after { animation: none !important; transition: none !important; }`}</style>
+      )}
 
       <HistoryPanel 
         isOpen={historyOpen} 
@@ -786,14 +786,48 @@ function EditorContent({ onBack }: EditorProps) {
           </button>
 
           <div className="flex gap-4 pointer-events-auto">
-             {/* --- ADDED HISTORY BUTTON HERE --- */}
              <button 
                 onClick={() => setHistoryOpen(true)}
                 className="focus-ring flex items-center gap-2 px-3 py-1 rounded-full bg-slate-800/80 backdrop-blur-md border border-white/10 text-xs text-slate-300 hover:bg-blue-600 hover:text-white transition-all shadow-lg"
              >
                 <History size={14} /> HISTORY
              </button>
-             {/* ------------------------------- */}
+
+             <div className="relative">
+               <button
+                 onClick={() => setShowSettings(!showSettings)}
+                 className="focus-ring flex items-center gap-2 px-3 py-1 rounded-full bg-slate-800/80 backdrop-blur-md border border-white/10 text-xs text-slate-300 hover:bg-blue-600 hover:text-white transition-all shadow-lg"
+                 aria-label="Toggle settings"
+               >
+                 <Layers size={14} /> SETTINGS
+               </button>
+               {showSettings && (
+                 <>
+                   <div className="fixed inset-0 z-40" onClick={() => setShowSettings(false)} />
+                   <div className="absolute right-0 top-full mt-2 w-56 bg-slate-900 border border-slate-700 rounded-xl shadow-2xl overflow-hidden z-50">
+                     <div className="p-3 border-b border-slate-700/50 text-xs font-bold text-slate-400 uppercase tracking-wider">Settings</div>
+                     <label className="flex items-center justify-between px-4 py-3 hover:bg-white/5 cursor-pointer transition-colors">
+                       <span className="text-xs text-slate-300">Auto-hide Minimap</span>
+                       <button
+                         onClick={(e) => { e.stopPropagation(); settings.toggleAutoHideMinimap(); }}
+                         className={`relative w-9 h-5 rounded-full transition-colors ${settings.autoHideMinimap ? 'bg-blue-600' : 'bg-slate-600'}`}
+                       >
+                         <span className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-transform ${settings.autoHideMinimap ? 'translate-x-4' : ''}`} />
+                       </button>
+                     </label>
+                     <label className="flex items-center justify-between px-4 py-3 hover:bg-white/5 cursor-pointer transition-colors border-t border-slate-700/30">
+                       <span className="text-xs text-slate-300">Disable Animations</span>
+                       <button
+                         onClick={(e) => { e.stopPropagation(); settings.toggleDisableAnimations(); }}
+                         className={`relative w-9 h-5 rounded-full transition-colors ${settings.disableAnimations ? 'bg-blue-600' : 'bg-slate-600'}`}
+                       >
+                         <span className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-transform ${settings.disableAnimations ? 'translate-x-4' : ''}`} />
+                       </button>
+                     </label>
+                   </div>
+                 </>
+               )}
+             </div>
 
              <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-slate-900/60 backdrop-blur-md border border-white/10 text-xs font-mono text-emerald-400 shadow-lg">
                 <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"/> ONLINE
@@ -897,7 +931,7 @@ function EditorContent({ onBack }: EditorProps) {
                   </Controls>
                 )}
 
-                {nodes.length > 0 && (
+                {nodes.length > 0 && !settings.autoHideMinimap && (
                     <MiniMap
                       className="!border-white/5"
                       nodeColor={(node) => {
