@@ -10,7 +10,7 @@ import {
   Activity, BookOpen, PlayCircle, Layers, Code, Copy, Check, Zap,
   Globe, Mic, Download, ChevronDown, MessageSquare, Send, Paperclip,
   PanelRightClose, PanelRightOpen, AlertTriangle, ArrowRight, X, RefreshCw,
-  Maximize2, Minimize2, ZoomIn, ZoomOut, Maximize, Lock, Unlock, History
+  Maximize2, Minimize2, ZoomIn, ZoomOut, Maximize, Lock, Unlock, History, Upload
 } from 'lucide-react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import ReactFlow, {
@@ -295,6 +295,7 @@ function EditorContent({ onBack }: EditorProps) {
   const codeCache = useRef(new Map<string, codeObject>());
   const reactFlowWrapper = useRef(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const importJsonInputRef = useRef<HTMLInputElement>(null);
   const { getNodes, getEdges, fitView, zoomIn, zoomOut } = useReactFlow();
 
   const copyTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -612,6 +613,30 @@ function EditorContent({ onBack }: EditorProps) {
     reader.readAsText(file);
   };
 
+  const handleImportJson = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const text = event.target?.result as string;
+        const data = JSON.parse(text);
+        if (data.nodes) setNodes(data.nodes);
+        if (data.edges) setEdges(data.edges);
+        if (data.graphData) {
+          setGraphData(data.graphData);
+          setIsSidebarOpen(true);
+        }
+        if (data.prompt) setPrompt(data.prompt);
+        setActiveTab('ANALYSIS');
+      } catch {
+        console.error('Failed to parse JSON file');
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = '';
+  };
+
   const startListening = () => {
     const SpeechAPI =
       (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
@@ -786,7 +811,21 @@ function EditorContent({ onBack }: EditorProps) {
           </button>
 
           <div className="flex gap-4 pointer-events-auto">
-             {/* --- ADDED HISTORY BUTTON HERE --- */}
+             <button
+               onClick={() => importJsonInputRef.current?.click()}
+               className="focus-ring flex items-center gap-2 px-3 py-1 rounded-full bg-slate-800/80 backdrop-blur-md border border-white/10 text-xs text-slate-300 hover:bg-amber-600 hover:text-white transition-all shadow-lg"
+               title="Import graph from JSON file"
+               aria-label="Import graph from JSON"
+             >
+               <Upload size={14} /> IMPORT JSON
+             </button>
+             <input
+               ref={importJsonInputRef}
+               type="file"
+               className="hidden"
+               accept=".json"
+               onChange={handleImportJson}
+             />
              <button 
                 onClick={() => setHistoryOpen(true)}
                 className="focus-ring flex items-center gap-2 px-3 py-1 rounded-full bg-slate-800/80 backdrop-blur-md border border-white/10 text-xs text-slate-300 hover:bg-blue-600 hover:text-white transition-all shadow-lg"
