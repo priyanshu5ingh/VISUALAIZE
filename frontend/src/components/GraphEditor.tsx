@@ -10,7 +10,7 @@ import {
   Activity, BookOpen, PlayCircle, Layers, Code, Copy, Check, Zap,
   Globe, Mic, Download, ChevronDown, MessageSquare, Send, Paperclip,
   PanelRightClose, PanelRightOpen, AlertTriangle, ArrowRight, X, RefreshCw,
-  Maximize2, Minimize2, ZoomIn, ZoomOut, Maximize, Lock, Unlock, History
+  Maximize2, Minimize2, ZoomIn, ZoomOut, Maximize, Lock, Unlock, History, HelpCircle
 } from 'lucide-react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import ReactFlow, {
@@ -259,6 +259,10 @@ function EditorContent({ onBack }: EditorProps) {
   const [edges, setEdges] = useState<Edge[]>([]);
   const [viewport, setViewport] = useState({ x: 0, y: 0, zoom: 1 });
   const [prompt, setPrompt] = useState('');
+  const submitForm = () => {
+    const form = document.querySelector("form");
+    form?.requestSubmit();
+  };
   const [isGenerating, setIsGenerating] = useState(false);
   const [graphData, setGraphData] = useState<GraphData | null>(null);
   const [activeTab, setActiveTab] = useState<'ANALYSIS' | 'CODE' | 'CHAT'>('ANALYSIS');
@@ -286,6 +290,7 @@ function EditorContent({ onBack }: EditorProps) {
   const [cursors, setCursors] = useState<Record<string, { x: number; y: number }>>({});
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
+  const [showShortcuts, setShowShortcuts] = useState(false);
   const [savedHistory, setSavedHistory] = useState<SavedDiagram[]>([]);
 
   useEffect(() => {
@@ -744,7 +749,14 @@ function EditorContent({ onBack }: EditorProps) {
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isFullscreen) setIsFullscreen(false);
+      if (e.key === "Escape" && isFullscreen) {
+        setIsFullscreen(false);
+      }
+
+      if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
+        e.preventDefault();
+        submitForm();
+      }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
@@ -754,6 +766,28 @@ function EditorContent({ onBack }: EditorProps) {
     <div className="relative flex h-screen w-screen bg-black overflow-hidden font-sans text-slate-200">
 
       <style>{glassControlsStyle}</style>
+
+      {showShortcuts && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70">
+          <div className="bg-slate-900 p-6 rounded-xl border border-slate-700 max-w-md w-full">
+            <h2 className="text-xl font-bold mb-4">Keyboard Shortcuts</h2>
+
+            <ul className="space-y-2 text-sm">
+              <li>Ctrl + Scroll → Zoom</li>
+              <li>Space + Drag → Pan Canvas</li>
+              <li>Esc → Exit Fullscreen</li>
+              <li>Cmd/Ctrl + Enter → Generate Diagram</li>
+            </ul>
+
+            <button
+              onClick={() => setShowShortcuts(false)}
+              className="mt-4 px-4 py-2 rounded-lg bg-purple-600"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
 
       <HistoryPanel 
         isOpen={historyOpen} 
@@ -794,6 +828,13 @@ function EditorContent({ onBack }: EditorProps) {
                 <History size={14} /> HISTORY
              </button>
              {/* ------------------------------- */}
+              <button
+                onClick={() => setShowShortcuts(true)}
+                className="focus-ring flex items-center gap-2 px-3 py-1 rounded-full bg-slate-800/80 backdrop-blur-md border border-white/10 text-xs text-slate-300 hover:bg-blue-600 hover:text-white transition-all shadow-lg"
+              >
+                <HelpCircle size={14} />
+                HELP
+              </button>
 
              <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-slate-900/60 backdrop-blur-md border border-white/10 text-xs font-mono text-emerald-400 shadow-lg">
                 <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"/> ONLINE
