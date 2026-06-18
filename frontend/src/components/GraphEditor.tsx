@@ -10,7 +10,7 @@ import {
   Activity, BookOpen, PlayCircle, Layers, Code, Copy, Check, Zap,
   Globe, Mic, Download, ChevronDown, MessageSquare, Send, Paperclip,
   PanelRightClose, PanelRightOpen, AlertTriangle, ArrowRight, X, RefreshCw,
-  Maximize2, Minimize2, ZoomIn, ZoomOut, Maximize, Lock, Unlock, History
+  Maximize2, Minimize2, ZoomIn, ZoomOut, Maximize, Lock, Unlock, History, Eye, EyeOff
 } from 'lucide-react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import ReactFlow, {
@@ -257,6 +257,8 @@ const ZeroState = ({ onSelect }: { onSelect: (text: string) => void }) => {
 function EditorContent({ onBack }: EditorProps) {
   const [nodes, setNodes] = useState<Node[]>([]);
   const [edges, setEdges] = useState<Edge[]>([]);
+  const [showEdgeLabels, setShowEdgeLabels] = useState(true);
+
   const [viewport, setViewport] = useState({ x: 0, y: 0, zoom: 1 });
   const [prompt, setPrompt] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
@@ -440,7 +442,7 @@ function EditorContent({ onBack }: EditorProps) {
         id: `e-${i}`,
         source: e.source,
         target: e.target,
-        label: e.label,
+        label: showEdgeLabels ? e.label : '',
         type: 'smoothstep',
         markerEnd: {
           type: MarkerType.ArrowClosed,
@@ -670,10 +672,15 @@ function EditorContent({ onBack }: EditorProps) {
   }, [visibleNodes]);
 
   const filteredEdges = useMemo(() => {
-    return edges.filter(
-      (e) => visibleNodeIds.has(e.source) && visibleNodeIds.has(e.target)
-    );
-  }, [edges, visibleNodeIds]);
+    return edges
+      .filter(
+        (e) => visibleNodeIds.has(e.source) && visibleNodeIds.has(e.target)
+      )
+      .map((e) => ({
+        ...e,
+        label: showEdgeLabels ? e.label : '',
+      }));
+  }, [edges, visibleNodeIds, showEdgeLabels]);
 
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
@@ -893,6 +900,17 @@ function EditorContent({ onBack }: EditorProps) {
                       aria-label="Toggle interactive"
                     >
                       <Lock size={14} />
+                    </ControlButton>
+                    <ControlButton
+                      onClick={() => setShowEdgeLabels(prev => !prev)}
+                      title="Toggle Edge Labels"
+                      aria-label="Toggle edge labels"
+                    >
+                      {showEdgeLabels ? (
+                        <Eye size={14} />
+                      ) : (
+                        <EyeOff size={14} />
+                      )}
                     </ControlButton>
                   </Controls>
                 )}
