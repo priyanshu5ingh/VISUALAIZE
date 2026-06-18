@@ -645,6 +645,34 @@ function EditorContent({ onBack }: EditorProps) {
     }
   };
 
+  const handleDownloadCode = () => {
+    if (!graphData?.code_snippet) return;
+
+    const blob = new Blob(
+      [graphData.code_snippet],
+      { type: "text/plain" }
+    );
+
+    const url = URL.createObjectURL(blob);
+
+    const extensionMap: Record<string, string> = {
+      Python: "py",
+      JavaScript: "js",
+      "C++": "cpp",
+      Java: "java",
+    };
+
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `generated-code.${extensionMap[codeLanguage]}`;
+
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    URL.revokeObjectURL(url);
+  };
+
   const showBackground = nodes.length === 0;
 
   const { x, y, zoom } = getViewport();
@@ -1056,9 +1084,23 @@ function EditorContent({ onBack }: EditorProps) {
                               <RefreshCw size={14}/>
                             </button>
                       </div>
-                      <button onClick={handleCopyCode} className="focus-ring flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 text-xs font-bold transition-colors">
-                        {copied ? <Check size={14} /> : <Copy size={14} />} {copied ? 'COPIED' : 'COPY'}
-                      </button>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={handleCopyCode}
+                          className="focus-ring flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 text-xs font-bold transition-colors"
+                        >
+                          {copied ? <Check size={14} /> : <Copy size={14} />}
+                          {copied ? 'COPIED' : 'COPY'}
+                        </button>
+
+                        <button
+                          onClick={handleDownloadCode}
+                          className="focus-ring flex items-center gap-2 px-3 py-1.5 rounded-lg bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 text-xs font-bold transition-colors"
+                        >
+                          <Download size={14} />
+                          DOWNLOAD
+                        </button>
+                      </div>
                     </div>
                     <div className="flex-1 rounded-xl bg-black/50 border border-white/10 p-4 overflow-x-auto relative">
                         {isRegeneratingCode && <div className="absolute inset-0 bg-black/80 flex items-center justify-center text-blue-400 text-xs font-bold animate-pulse z-10">REWRITING...</div>}
