@@ -662,9 +662,11 @@ function EditorContent({ onBack }: EditorProps) {
       Java: "java",
     };
 
+    const extension = extensionMap[codeLanguage] ?? "txt";
+
     const link = document.createElement("a");
     link.href = url;
-    link.download = `generated-code.${extensionMap[codeLanguage]}`;
+    link.download = `generated-code.${extension}`;
 
     document.body.appendChild(link);
     link.click();
