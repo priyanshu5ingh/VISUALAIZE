@@ -196,6 +196,8 @@ def get_valid_models() -> list[str]:
         list[str]: A sorted list of available model names prioritizing newer models.
     """
     valid_models: list[str] = []
+    if not GENAI_KEY or GENAI_KEY == "missing":
+        return valid_models
     try:
         logger.info("🔍 Scanning for available AI models...")
         for m in genai.list_models():
@@ -220,6 +222,9 @@ if not AVAILABLE_MODELS:
 app = FastAPI()
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+from auth import router as auth_router
+app.include_router(auth_router)
 
 
 

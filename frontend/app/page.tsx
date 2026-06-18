@@ -2,13 +2,15 @@
 
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import Link from 'next/link'; // <--- IMPORT LINK
+import Link from 'next/link';
+import { useAuth } from '../src/context/AuthContext';
 import Hero3D from '../src/components/Hero3D';
 import GraphEditor from '../src/components/GraphEditor';
 import { ArrowRight, Cpu, Share2, Zap } from 'lucide-react';
 
 export default function LandingPage() {
   const [appState, setAppState] = useState<'LANDING' | 'TRANSITION' | 'APP'>('LANDING');
+  const { user, logout } = useAuth();
 
   const handleLaunch = () => {
     setAppState('TRANSITION');
@@ -104,6 +106,28 @@ export default function LandingPage() {
                       <span className="relative z-10">Learn More</span>
                     </motion.button>
                   </Link>
+                  
+                  {/* AUTHENTICATION BUTTON */}
+                  {user ? (
+                    <motion.button
+                      whileHover={{ scale: 1.05, backgroundColor: "rgba(255,0,0,0.1)" }}
+                      whileTap={{ scale: 0.95 }}
+                      onClick={logout}
+                      className="focus-ring px-8 py-4 bg-transparent border border-red-500/30 text-white font-semibold rounded-full text-lg hover:border-red-500/60 hover:text-red-400 transition-all flex items-center gap-2 backdrop-blur-sm"
+                    >
+                      <span className="relative z-10">Log Out</span>
+                    </motion.button>
+                  ) : (
+                    <Link href="/login">
+                      <motion.button
+                        whileHover={{ scale: 1.05, backgroundColor: "rgba(255,255,255,0.1)" }}
+                        whileTap={{ scale: 0.95 }}
+                        className="focus-ring px-8 py-4 bg-transparent border border-white/20 text-white font-semibold rounded-full text-lg hover:border-white/50 transition-all flex items-center gap-2 backdrop-blur-sm"
+                      >
+                        <span className="relative z-10">Log In</span>
+                      </motion.button>
+                    </Link>
+                  )}
               </div>
 
             </motion.div>

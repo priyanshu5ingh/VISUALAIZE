@@ -33,3 +33,7 @@ Thumbs.db
 .idea/
 *.swp
 *.swo
+
+node_modules/
+*.db
+*.sqlite3
