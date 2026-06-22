@@ -10,7 +10,7 @@ import {
   Activity, BookOpen, PlayCircle, Layers, Code, Copy, Check, Zap,
   Globe, Mic, Download, ChevronDown, MessageSquare, Send, Paperclip,
   PanelRightClose, PanelRightOpen, AlertTriangle, ArrowRight, X, RefreshCw,
-  Maximize2, Minimize2, ZoomIn, ZoomOut, Maximize, Lock, Unlock, History
+  Maximize2, Minimize2, ZoomIn, ZoomOut, Maximize, Lock, Unlock, History, Trash2
 } from 'lucide-react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import ReactFlow, {
@@ -32,6 +32,8 @@ import HolographicScene from './HolographicScene';
 import { flushSync } from 'react-dom';
 import ErrorModal from './ErrorModal';
 import LoadingCore from './LoadingCore';
+import Tooltip from './Tooltip';
+import { toast } from 'sonner';
 
 interface EditorProps { onBack: () => void; }
 
@@ -635,6 +637,7 @@ function EditorContent({ onBack }: EditorProps) {
     const slug = graphData?.filename_slug || 'visualaize-graph';
     toPng(reactFlowWrapper.current, { backgroundColor: '#020617' }).then((dataUrl) => {
         const link = document.createElement('a'); link.download = `${slug}.png`; link.href = dataUrl; link.click();
+        toast.success('Graph Exported!');
     });
   };
 
@@ -642,6 +645,7 @@ function EditorContent({ onBack }: EditorProps) {
     if (graphData?.code_snippet) {
       navigator.clipboard.writeText(graphData.code_snippet);
       setCopied(true);
+      toast.success('Code Copied!');
       if (copyTimeoutRef.current) clearTimeout(copyTimeoutRef.current);
       copyTimeoutRef.current = setTimeout(() => setCopied(false), 2000);
     }
@@ -868,34 +872,51 @@ function EditorContent({ onBack }: EditorProps) {
 
                 {nodes.length > 0 && (
                   <Controls showZoom={false} showFitView={false} showInteractive={false}>
-                    <ControlButton
-                      onClick={() => zoomIn({ duration: 300 })}
-                      title="Zoom In"
-                      aria-label="Zoom in"
-                    >
-                      <ZoomIn size={14} />
-                    </ControlButton>
-                    <ControlButton
-                      onClick={() => zoomOut({ duration: 300 })}
-                      title="Zoom Out"
-                      aria-label="Zoom out"
-                    >
-                      <ZoomOut size={14} />
-                    </ControlButton>
-                    <ControlButton
-                      onClick={() => fitView({ padding: 0.15, duration: 500 })}
-                      title="Fit View"
-                      aria-label="Fit view"
-                    >
-                      <Maximize size={14} />
-                    </ControlButton>
-                    <ControlButton
-                      onClick={() => setNodes(nds => nds.map(n => ({ ...n, draggable: !(n.draggable ?? true) })))}
-                      title="Toggle Interactive (lock/unlock nodes)"
-                      aria-label="Toggle interactive"
-                    >
-                      <Lock size={14} />
-                    </ControlButton>
+                    <Tooltip label="Zoom In">
+                      <ControlButton
+                        onClick={() => zoomIn({ duration: 300 })}
+                        aria-label="Zoom in"
+                      >
+                        <ZoomIn size={14} />
+                      </ControlButton>
+                    </Tooltip>
+                    <Tooltip label="Zoom Out">
+                      <ControlButton
+                        onClick={() => zoomOut({ duration: 300 })}
+                        aria-label="Zoom out"
+                      >
+                        <ZoomOut size={14} />
+                      </ControlButton>
+                    </Tooltip>
+                    <Tooltip label="Fit View">
+                      <ControlButton
+                        onClick={() => fitView({ padding: 0.15, duration: 500 })}
+                        aria-label="Fit view"
+                      >
+                        <Maximize size={14} />
+                      </ControlButton>
+                    </Tooltip>
+                    <Tooltip label="Lock">
+                      <ControlButton
+                        onClick={() => setNodes(nds => nds.map(n => ({ ...n, draggable: !(n.draggable ?? true) })))}
+                        aria-label="Toggle interactive"
+                      >
+                        <Lock size={14} />
+                      </ControlButton>
+                    </Tooltip>
+                    <Tooltip label="Clear Canvas">
+                      <ControlButton
+                        onClick={() => {
+                          setNodes([]);
+                          setEdges([]);
+                          setGraphData(null);
+                          toast.success('Canvas cleared');
+                        }}
+                        aria-label="Clear canvas"
+                      >
+                        <Trash2 size={14} />
+                      </ControlButton>
+                    </Tooltip>
                   </Controls>
                 )}
 

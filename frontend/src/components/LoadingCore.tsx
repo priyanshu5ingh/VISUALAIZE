@@ -79,25 +79,18 @@ function ProcessingUnit() {
 export default function LoadingCore() {
 
   const loadingMessages = [
-    "Establishing zero-point anchor...",
-    "Harmonizing gravitational matrices...",
-    "Spinning up distortion fields...",
-    "Calibrating field geometry...",
-    "Stabilizing levitation vector..."
+    "Consulting the AI Architects...",
+    "Routing the network...",
+    "Generating nodes...",
+    "Analyzing architecture patterns...",
+    "Optimizing graph layout..."
   ];
 
   const [currentMessage, setCurrentMessage] = useState(0);
 
   useEffect(() => {
     const interval = setInterval(() => {
-      setCurrentMessage((prev) => {
-        const lastIndex = loadingMessages.length - 1;
-        if (prev >= lastIndex) {
-          clearInterval(interval);
-          return prev;
-        }
-        return prev + 1;
-      });
+      setCurrentMessage((prev) => (prev + 1) % loadingMessages.length);
     }, 1500);
 
     return () => clearInterval(interval);
