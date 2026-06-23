@@ -9,15 +9,8 @@
     "lint": "eslint"
   },
   "dependencies": {
-<<<<<<< HEAD
-    "@react-three/drei": "^9.122.0",
-    "@react-three/fiber": "^8.18.0",
-    "@types/three": "^0.184.1",
-    "class-variance-authority": "^0.7.1",
-=======
     "@react-three/drei": "^10.7.7",
     "@react-three/fiber": "^9.6.1",
->>>>>>> 9c17faa43a1e7ed6ef4bf2dcd5805f9c4501f15e
     "clsx": "^2.1.1",
     "dagre": "^0.8.5",
     "framer-motion": "^12.40.0",

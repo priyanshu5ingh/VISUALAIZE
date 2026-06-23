@@ -11,6 +11,7 @@ import {
   Globe, Mic, Download, ChevronDown, MessageSquare, Send, Paperclip,
   PanelRightClose, PanelRightOpen, AlertTriangle, ArrowRight, X, RefreshCw,
   Maximize2, Minimize2, ZoomIn, ZoomOut, Maximize, Lock, Unlock, History, Eye, EyeOff, HelpCircle
+
 } from 'lucide-react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import ReactFlow, {
@@ -162,7 +163,6 @@ const SystemLogs = () => {
 };
 
 // Empty state shown before any diagram is generated.
-// Sits above the canvas, centered, with a faint floating node-tree illustration.
 const EmptyState = () => {
   return (
     <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none select-none z-10">
@@ -799,6 +799,18 @@ function EditorContent({ onBack }: EditorProps) {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isFullscreen]);
 
+  // 🗑️ Clear All function
+  const handleClearAll = () => {
+    if (nodes.length === 0) return;
+    if (confirm("Are you sure you want to clear the entire diagram? This action cannot be undone.")) {
+      setNodes([]);
+      setEdges([]);
+      setGraphData(null);
+      setIsSidebarOpen(false);
+      console.log("✨ Canvas cleared successfully");
+    }
+  };
+
   return (
     <div className="relative flex h-screen w-screen bg-black overflow-hidden font-sans text-slate-200">
 
@@ -857,14 +869,12 @@ function EditorContent({ onBack }: EditorProps) {
           </button>
 
           <div className="flex gap-4 pointer-events-auto">
-             {/* --- ADDED HISTORY BUTTON HERE --- */}
              <button 
                 onClick={() => setHistoryOpen(true)}
                 className="focus-ring flex items-center gap-2 px-3 py-1 rounded-full bg-slate-800/80 backdrop-blur-md border border-white/10 text-xs text-slate-300 hover:bg-blue-600 hover:text-white transition-all shadow-lg"
              >
                 <History size={14} /> HISTORY
              </button>
-             {/* ------------------------------- */}
               <button
                 onClick={() => setShowShortcuts(true)}
                 className="focus-ring flex items-center gap-2 px-3 py-1 rounded-full bg-slate-800/80 backdrop-blur-md border border-white/10 text-xs text-slate-300 hover:bg-blue-600 hover:text-white transition-all shadow-lg"
@@ -872,6 +882,16 @@ function EditorContent({ onBack }: EditorProps) {
                 <HelpCircle size={14} />
                 HELP
               </button>
+
+             {/* 🗑️ CLEAR ALL BUTTON - TOP BAR */}
+             {nodes.length > 0 && (
+               <button
+                 onClick={handleClearAll}
+                 className="focus-ring flex items-center gap-2 px-3 py-1 rounded-full bg-red-500/20 border border-red-500/30 text-xs text-red-400 hover:bg-red-500/30 hover:text-red-300 transition-all shadow-lg"
+               >
+                 <Trash2 size={14} /> CLEAR ALL
+               </button>
+             )}
 
              <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-slate-900/60 backdrop-blur-md border border-white/10 text-xs font-mono text-emerald-400 shadow-lg">
                 <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"/> ONLINE
@@ -982,6 +1002,14 @@ function EditorContent({ onBack }: EditorProps) {
                       ) : (
                         <EyeOff size={14} />
                       )}
+                    {/* 🗑️ CLEAR ALL BUTTON - CONTROLS PANEL */}
+                    <ControlButton
+                      onClick={handleClearAll}
+                      title="Clear All"
+                      aria-label="Clear all nodes and edges"
+                      className="hover:bg-red-500/20 transition-colors"
+                    >
+                      <Trash2 size={14} className="text-red-400 hover:text-red-300" />
                     </ControlButton>
                   </Controls>
                 )}
