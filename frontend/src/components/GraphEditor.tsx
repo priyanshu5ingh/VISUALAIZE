@@ -163,7 +163,6 @@ const SystemLogs = () => {
 };
 
 // Empty state shown before any diagram is generated.
-// Sits above the canvas, centered, with a faint floating node-tree illustration.
 const EmptyState = () => {
   return (
     <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none select-none z-10">
@@ -260,6 +259,10 @@ function EditorContent({ onBack }: EditorProps) {
   const [edges, setEdges] = useState<Edge[]>([]);
   const [viewport, setViewport] = useState({ x: 0, y: 0, zoom: 1 });
   const [prompt, setPrompt] = useState('');
+  const submitForm = () => {
+    const form = document.querySelector("form");
+    form?.requestSubmit();
+  };
   const [isGenerating, setIsGenerating] = useState(false);
   const [graphData, setGraphData] = useState<GraphData | null>(null);
   const [activeTab, setActiveTab] = useState<'ANALYSIS' | 'CODE' | 'CHAT'>('ANALYSIS');
@@ -648,6 +651,36 @@ function EditorContent({ onBack }: EditorProps) {
     }
   };
 
+  const handleDownloadCode = () => {
+    if (!graphData?.code_snippet) return;
+
+    const blob = new Blob(
+      [graphData.code_snippet],
+      { type: "text/plain" }
+    );
+
+    const url = URL.createObjectURL(blob);
+
+    const extensionMap: Record<string, string> = {
+      Python: "py",
+      JavaScript: "js",
+      "C++": "cpp",
+      Java: "java",
+    };
+
+    const extension = extensionMap[codeLanguage] ?? "txt";
+
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `generated-code.${extension}`;
+
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    URL.revokeObjectURL(url);
+  };
+
   const showBackground = nodes.length === 0;
 
   const { x, y, zoom } = getViewport();
@@ -747,11 +780,30 @@ function EditorContent({ onBack }: EditorProps) {
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isFullscreen) setIsFullscreen(false);
+      if (e.key === "Escape" && isFullscreen) {
+        setIsFullscreen(false);
+      }
+
+      if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
+        e.preventDefault();
+        submitForm();
+      }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isFullscreen]);
+
+  // 🗑️ Clear All function
+  const handleClearAll = () => {
+    if (nodes.length === 0) return;
+    if (confirm("Are you sure you want to clear the entire diagram? This action cannot be undone.")) {
+      setNodes([]);
+      setEdges([]);
+      setGraphData(null);
+      setIsSidebarOpen(false);
+      console.log("✨ Canvas cleared successfully");
+    }
+  };
 
   return (
     <div className="relative flex h-screen w-screen bg-black overflow-hidden font-sans text-slate-200">
@@ -916,6 +968,15 @@ function EditorContent({ onBack }: EditorProps) {
                     >
                       <Lock size={14} />
                     </ControlButton>
+                    {/* 🗑️ CLEAR ALL BUTTON - CONTROLS PANEL */}
+                    <ControlButton
+                      onClick={handleClearAll}
+                      title="Clear All"
+                      aria-label="Clear all nodes and edges"
+                      className="hover:bg-red-500/20 transition-colors"
+                    >
+                      <Trash2 size={14} className="text-red-400 hover:text-red-300" />
+                    </ControlButton>
                   </Controls>
                 )}
 
@@ -1078,9 +1139,23 @@ function EditorContent({ onBack }: EditorProps) {
                               <RefreshCw size={14}/>
                             </button>
                       </div>
-                      <button onClick={handleCopyCode} className="focus-ring flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 text-xs font-bold transition-colors">
-                        {copied ? <Check size={14} /> : <Copy size={14} />} {copied ? 'COPIED' : 'COPY'}
-                      </button>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={handleCopyCode}
+                          className="focus-ring flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 text-xs font-bold transition-colors"
+                        >
+                          {copied ? <Check size={14} /> : <Copy size={14} />}
+                          {copied ? 'COPIED' : 'COPY'}
+                        </button>
+
+                        <button
+                          onClick={handleDownloadCode}
+                          className="focus-ring flex items-center gap-2 px-3 py-1.5 rounded-lg bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 text-xs font-bold transition-colors"
+                        >
+                          <Download size={14} />
+                          DOWNLOAD
+                        </button>
+                      </div>
                     </div>
                     <div className="flex-1 rounded-xl bg-black/50 border border-white/10 p-4 overflow-x-auto relative">
                         {isRegeneratingCode && <div className="absolute inset-0 bg-black/80 flex items-center justify-center text-blue-400 text-xs font-bold animate-pulse z-10">REWRITING...</div>}
