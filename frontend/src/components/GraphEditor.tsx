@@ -10,7 +10,7 @@ import {
   Activity, BookOpen, PlayCircle, Layers, Code, Copy, Check, Zap,
   Globe, Mic, Download, ChevronDown, MessageSquare, Send, Paperclip,
   PanelRightClose, PanelRightOpen, AlertTriangle, ArrowRight, X, RefreshCw,
-  Maximize2, Minimize2, ZoomIn, ZoomOut, Maximize, Lock, Unlock, History
+  Maximize2, Minimize2, ZoomIn, ZoomOut, Maximize, Lock, Unlock, History,Hand, MousePointer2
 } from 'lucide-react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import ReactFlow, {
@@ -23,7 +23,8 @@ import ReactFlow, {
   OnEdgesChange,
   OnNodesChange,
   ReactFlowProvider,
-  useReactFlow
+  useReactFlow,
+  SelectionMode 
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import CustomNode from '../components/CustomNode';
@@ -275,6 +276,8 @@ function EditorContent({ onBack }: EditorProps) {
   const [isRefineMode, setIsRefineMode] = useState(false);
   const clientId = useRef(crypto.randomUUID());
   const roomId = useRef("room_1");
+  //new
+  const [panOnDrag, setPanOnDrag] = useState(true);
   const [errorState, setErrorState] = useState<{
     show: boolean;
     title: string;
@@ -855,6 +858,9 @@ function EditorContent({ onBack }: EditorProps) {
               onEdgesChange={onEdgesChange}
               onMove={onMove}
               minZoom={0.1}
+              panOnDrag={panOnDrag}
+              selectionOnDrag={!panOnDrag}
+              selectionMode={SelectionMode.Partial}
             >
                 <Background
                     color="#94a3b8"
@@ -866,6 +872,22 @@ function EditorContent({ onBack }: EditorProps) {
 
                 {nodes.length > 0 && (
                   <Controls showZoom={false} showFitView={false} showInteractive={false}>
+                    <ControlButton
+                       onClick={() => setPanOnDrag(false)}
+                       title="Select Mode"
+                       aria-label="Select Mode"
+                       style={{ background: !panOnDrag ? 'rgba(99, 102, 241, 0.4)' : 'transparent' }}
+                      >
+                    <MousePointer2 size={14} />
+                    </ControlButton>
+                    <ControlButton
+                      onClick={() => setPanOnDrag(true)}
+                      title="Pan Mode"
+                      aria-label="Pan Mode"
+                      style={{ background: panOnDrag ? 'rgba(99, 102, 241, 0.4)' : 'transparent' }}
+                      >
+                    <Hand size={14} />
+                    </ControlButton>
                     <ControlButton
                       onClick={() => zoomIn({ duration: 300 })}
                       title="Zoom In"

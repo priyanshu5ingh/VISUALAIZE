@@ -1,10 +1,7 @@
 @import "tailwindcss";
-<<<<<<< HEAD
 /*@import "tailwindcss-animate";*/
 
-=======
 @plugin "tailwindcss-animate";
->>>>>>> 9c17faa43a1e7ed6ef4bf2dcd5805f9c4501f15e
 :root {
   --background: #ffffff;
   --foreground: #171717;
