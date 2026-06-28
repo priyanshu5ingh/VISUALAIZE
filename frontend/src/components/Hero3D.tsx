@@ -1,5 +1,4 @@
 'use client';
-
 import { useRef } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { Sphere, MeshDistortMaterial, Stars, Float } from '@react-three/drei';

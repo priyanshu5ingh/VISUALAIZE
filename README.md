@@ -128,17 +128,23 @@ VisualAIze/
 └── backend/                           # Python Backend
     ├── test_key.py                   # Gemini API Key Validation
     └── venv/                         # Virtual Environment
-
-  ---
-
-  ## 🖼️ Diagrams
-
-  Visual diagrams for the architecture and data flow are available in the `docs/` folder.
-
-  ![Architecture Diagram](docs/architecture.svg)
-
-  ![Data Flow](docs/data-flow.svg)
 ```
+
+---
+
+## 🖼️ Diagrams
+
+Visual diagrams for the architecture and data flow are available in the `docs/` folder.
+
+![Architecture Diagram](docs/architecture.svg)
+
+![Data Flow](docs/data-flow.svg)
+
+### Request flow: Frontend, Backend, Redis & Gemini
+
+![Architecture overview with Redis cache](docs/architecture-overview.svg)
+
+This diagram shows how a request travels from the **Next.js frontend** to the **FastAPI backend**, which checks **Redis** for a cached diagram before calling the **Gemini API** to generate new graph data — caching the result for future requests.
 
 ---
 

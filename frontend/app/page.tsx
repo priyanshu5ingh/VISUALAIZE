@@ -34,7 +34,7 @@ export default function LandingPage() {
       aria-label="VisualAIze landing page"
     >
       {/* 1. 3D Background (Controlled by state) */}
-      <Hero3D isZooming={appState === 'TRANSITION'} />
+      <div className="absolute inset-0 bg-slate-950" />
 
       {/* 2. Glass Overlay Content */}
       <AnimatePresence>
