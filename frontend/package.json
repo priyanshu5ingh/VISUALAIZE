@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "format": "prettier --write ."
   },
   "dependencies": {
     "@react-three/drei": "^9.122.0",
@@ -43,6 +44,7 @@
     "eslint": "^10.6.0",
     "eslint-config-next": "16.2.9",
     "eslint-plugin-react": "^7.37.5",
+    "prettier": "^3.8.4",
     "tailwindcss": "^4",
     "tailwindcss-animate": "^1.0.7",
     "typescript": "^6"

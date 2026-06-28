@@ -26,9 +26,9 @@ export default function PageTransition({ children }: PageTransitionProps) {
   const shouldReduceMotion = useReducedMotion() ?? false;
 
   const variants = {
-    hidden:  { opacity: 0, y: shouldReduceMotion ? 0 : 10 },
+    hidden: { opacity: 0, y: shouldReduceMotion ? 0 : 10 },
     visible: { opacity: 1, y: 0 },
-    exit:    { opacity: 0, y: shouldReduceMotion ? 0 : -6 },
+    exit: { opacity: 0, y: shouldReduceMotion ? 0 : -6 },
   };
 
   return (

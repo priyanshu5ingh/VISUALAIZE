@@ -1,13 +1,12 @@
-"use client";
+'use client';
 
-import { useState } from "react";
+import { useState } from 'react';
 
 const ProductDemo = () => {
   const [sliderPosition, setSliderPosition] = useState(50);
 
   return (
     <div className="relative w-full aspect-video overflow-hidden rounded-xl border border-white/10 bg-[#0a0a0a] shadow-2xl">
-
       <img
         src="/assets/before.jpg"
         alt="Before"
@@ -44,10 +43,8 @@ const ProductDemo = () => {
         min="0"
         max="100"
         value={sliderPosition}
-        onChange={(e) =>
-          setSliderPosition(Number(e.target.value))
-        }
-       className="absolute bottom-6 left-1/2 z-30 w-2/3 -translate-x-1/2 cursor-ew-resize accent-cyan-400"
+        onChange={(e) => setSliderPosition(Number(e.target.value))}
+        className="absolute bottom-6 left-1/2 z-30 w-2/3 -translate-x-1/2 cursor-ew-resize accent-cyan-400"
       />
 
       <div className="absolute left-4 top-4 z-30 rounded-md bg-black/60 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-white backdrop-blur-sm">

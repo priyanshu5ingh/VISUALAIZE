@@ -3,7 +3,7 @@ import dagre from 'dagre';
 import { Node, Edge, Position } from 'reactflow';
 
 // We increase these values to prevent overlap
-const PAGE_WIDTH = 250; 
+const PAGE_WIDTH = 250;
 const PAGE_HEIGHT = 80;
 
 /**
@@ -24,9 +24,9 @@ export const getLayoutedElements = (nodes: Node[], edges: Edge[]) => {
     rankdir: 'TB',
     nodesep: 100, // Increased to allow natural horizontal clustering
     ranksep: 180, // Balanced vertical spread
-    edgesep: 40, 
+    edgesep: 40,
     ranker: 'network-simplex', // Natively handles balanced hierarchical distribution
-    acyclicer: 'greedy', 
+    acyclicer: 'greedy',
   });
 
   nodes.forEach((node) => {
@@ -47,7 +47,8 @@ export const getLayoutedElements = (nodes: Node[], edges: Edge[]) => {
     const lower = label.toLowerCase();
     if (lower.match(/client|admin|user|web|frontend|app|browser|ui|dashboard/)) return 0;
     if (lower.match(/gateway|proxy|balancer|nginx|api|lb/)) return 1;
-    if (lower.match(/db|database|redis|cache|queue|kafka|mongo|postgres|sql|storage|bucket/)) return 3;
+    if (lower.match(/db|database|redis|cache|queue|kafka|mongo|postgres|sql|storage|bucket/))
+      return 3;
     return 2; // Core Services
   };
 
@@ -62,33 +63,33 @@ export const getLayoutedElements = (nodes: Node[], edges: Edge[]) => {
   nodes.forEach((node) => {
     const nodeWithPosition = dagreGraph.node(node.id);
     const layerIdx = getLayer((node.data?.label as string) || '');
-    
+
     // Temporarily store Dagre's X for sorting (to minimize crossings)
     layers[layerIdx].push({
       ...node,
       targetPosition: Position.Top,
       sourcePosition: Position.Bottom,
-      position: { x: nodeWithPosition.x, y: 0 }, 
+      position: { x: nodeWithPosition.x, y: 0 },
     });
   });
 
   // --- Post-Layout Position Correction for Symmetry ---
   const layoutedNodes: Node[] = [];
   const LAYER_SPACING_Y = 250; // Increased to prevent vertical edge label overlap
-  const NODE_SPACING_X = 150;   // Increased to prevent horizontal node overlapping
+  const NODE_SPACING_X = 150; // Increased to prevent horizontal node overlapping
 
   let activeRowIndex = 0;
   Object.keys(layers).forEach((key) => {
     const layerIndex = parseInt(key);
     const layerNodes = layers[layerIndex];
-    
+
     if (layerNodes.length === 0) return;
 
     // Sort by Dagre's computed X to preserve edge-crossing minimization
     layerNodes.sort((a, b) => a.position.x - b.position.x);
 
-    const totalWidth = (layerNodes.length * PAGE_WIDTH) + ((layerNodes.length - 1) * NODE_SPACING_X);
-    let currentX = -(totalWidth / 2) + (PAGE_WIDTH / 2);
+    const totalWidth = layerNodes.length * PAGE_WIDTH + (layerNodes.length - 1) * NODE_SPACING_X;
+    let currentX = -(totalWidth / 2) + PAGE_WIDTH / 2;
 
     layerNodes.forEach((node) => {
       layoutedNodes.push({
@@ -96,7 +97,7 @@ export const getLayoutedElements = (nodes: Node[], edges: Edge[]) => {
         position: {
           x: currentX,
           y: activeRowIndex * LAYER_SPACING_Y,
-        }
+        },
       });
       currentX += PAGE_WIDTH + NODE_SPACING_X;
     });

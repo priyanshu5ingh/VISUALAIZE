@@ -1,19 +1,19 @@
-import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
-import "./globals.css";
+import type { Metadata } from 'next';
+import { Geist, Geist_Mono } from 'next/font/google';
+import './globals.css';
 
-const APP_NAME = "VisualAIze";
+const APP_NAME = 'VisualAIze';
 const APP_DESCRIPTION =
-  "AI-powered graph visualization platform for creating interactive diagrams from natural language.";
+  'AI-powered graph visualization platform for creating interactive diagrams from natural language.';
 
 const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
+  variable: '--font-geist-sans',
+  subsets: ['latin'],
 });
 
 const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
+  variable: '--font-geist-mono',
+  subsets: ['latin'],
 });
 
 export const metadata: Metadata = {
@@ -23,11 +23,11 @@ export const metadata: Metadata = {
   openGraph: {
     title: APP_NAME,
     description: APP_DESCRIPTION,
-    type: "website",
+    type: 'website',
     siteName: APP_NAME,
   },
   twitter: {
-    card: "summary_large_image",
+    card: 'summary_large_image',
     title: APP_NAME,
     description: APP_DESCRIPTION,
   },
@@ -49,4 +49,3 @@ export default function RootLayout({
     </html>
   );
 }
-  

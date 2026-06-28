@@ -41,10 +41,16 @@ function ParticleField({ reduceMotion }: { reduceMotion: boolean }) {
       ctx.strokeStyle = 'rgba(59,130,246,0.035)';
       ctx.lineWidth = 1;
       for (let x = 0; x < canvas.width; x += 64) {
-        ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, canvas.height);
+        ctx.stroke();
       }
       for (let y = 0; y < canvas.height; y += 64) {
-        ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(canvas.width, y);
+        ctx.stroke();
       }
       for (const p of particles) {
         ctx.beginPath();
@@ -60,13 +66,21 @@ function ParticleField({ reduceMotion }: { reduceMotion: boolean }) {
       ctx.strokeStyle = 'rgba(59,130,246,0.035)';
       ctx.lineWidth = 1;
       for (let x = 0; x < canvas.width; x += 64) {
-        ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, canvas.height);
+        ctx.stroke();
       }
       for (let y = 0; y < canvas.height; y += 64) {
-        ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(canvas.width, y);
+        ctx.stroke();
       }
       for (const p of particles) {
-        p.x += p.vx; p.y += p.vy; p.a += p.da;
+        p.x += p.vx;
+        p.y += p.vy;
+        p.a += p.da;
         if (p.a > 0.65 || p.a < 0.08) p.da *= -1;
         if (p.x < 0) p.x = canvas.width;
         if (p.x > canvas.width) p.x = 0;
@@ -86,7 +100,10 @@ function ParticleField({ reduceMotion }: { reduceMotion: boolean }) {
       tick();
     }
 
-    return () => { cancelAnimationFrame(rafId); window.removeEventListener('resize', resize); };
+    return () => {
+      cancelAnimationFrame(rafId);
+      window.removeEventListener('resize', resize);
+    };
   }, [reduceMotion]);
 
   return (
@@ -103,8 +120,14 @@ function ParticleField({ reduceMotion }: { reduceMotion: boolean }) {
 const digitVariants: Variants = {
   hidden: { opacity: 0, y: 50, filter: 'blur(16px)' },
   visible: (i: number) => ({
-    opacity: 1, y: 0, filter: 'blur(0px)',
-    transition: { duration: 0.85, delay: i * 0.14, ease: [0.16, 1, 0.3, 1] as [number, number, number, number] },
+    opacity: 1,
+    y: 0,
+    filter: 'blur(0px)',
+    transition: {
+      duration: 0.85,
+      delay: i * 0.14,
+      ease: [0.16, 1, 0.3, 1] as [number, number, number, number],
+    },
   }),
 };
 
@@ -127,10 +150,7 @@ export default function NotFound() {
       <ParticleField reduceMotion={shouldReduceMotion} />
 
       {/* Glow blobs */}
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-0"
-      >
+      <div aria-hidden="true" className="pointer-events-none absolute inset-0">
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[350px] bg-blue-600/12 blur-[130px] rounded-full" />
         <div className="absolute bottom-1/4 right-1/3 w-[320px] h-[220px] bg-purple-600/8 blur-[100px] rounded-full" />
       </div>
@@ -146,7 +166,10 @@ export default function NotFound() {
         <motion.div
           initial={{ opacity: 0, y: shouldReduceMotion ? 0 : -16 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: shouldReduceMotion ? 0.15 : 0.55, delay: shouldReduceMotion ? 0 : 0.15 }}
+          transition={{
+            duration: shouldReduceMotion ? 0.15 : 0.55,
+            delay: shouldReduceMotion ? 0 : 0.15,
+          }}
           className="inline-flex items-center gap-2 px-4 py-1.5 mb-10 rounded-full bg-blue-500/10 border border-blue-500/20 backdrop-blur-md"
           aria-label="404 — Page not found"
         >
@@ -193,7 +216,10 @@ export default function NotFound() {
         <motion.h2
           initial={{ opacity: 0, y: shouldReduceMotion ? 0 : 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: shouldReduceMotion ? 0.15 : 0.7, delay: shouldReduceMotion ? 0 : 0.65 }}
+          transition={{
+            duration: shouldReduceMotion ? 0.15 : 0.7,
+            delay: shouldReduceMotion ? 0 : 0.65,
+          }}
           className="text-2xl md:text-3xl font-bold tracking-tight text-white mb-4 leading-snug"
         >
           You drifted beyond{' '}
@@ -206,18 +232,24 @@ export default function NotFound() {
         <motion.p
           initial={{ opacity: 0, y: shouldReduceMotion ? 0 : 16 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: shouldReduceMotion ? 0.15 : 0.7, delay: shouldReduceMotion ? 0 : 0.8 }}
+          transition={{
+            duration: shouldReduceMotion ? 0.15 : 0.7,
+            delay: shouldReduceMotion ? 0 : 0.8,
+          }}
           className="text-slate-400 text-base md:text-lg leading-relaxed font-light max-w-md mb-12"
         >
-          The neural pathways couldn&apos;t trace this route. Re-initialize your
-          session from the origin node.
+          The neural pathways couldn&apos;t trace this route. Re-initialize your session from the
+          origin node.
         </motion.p>
 
         {/* CTA */}
         <motion.div
           initial={{ opacity: 0, y: shouldReduceMotion ? 0 : 16 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: shouldReduceMotion ? 0.15 : 0.65, delay: shouldReduceMotion ? 0 : 0.95 }}
+          transition={{
+            duration: shouldReduceMotion ? 0.15 : 0.65,
+            delay: shouldReduceMotion ? 0 : 0.95,
+          }}
           className="flex flex-col sm:flex-row items-center gap-4"
         >
           <motion.button
@@ -227,7 +259,11 @@ export default function NotFound() {
             whileTap={{ scale: 0.96 }}
             className="group relative flex items-center gap-2.5 px-8 py-3.5 bg-white text-slate-950 font-bold rounded-full text-sm shadow-[0_0_30px_-8px_rgba(255,255,255,0.3)] hover:bg-slate-100 transition-colors overflow-hidden"
           >
-            <Home size={16} className="group-hover:scale-110 transition-transform" aria-hidden="true" />
+            <Home
+              size={16}
+              className="group-hover:scale-110 transition-transform"
+              aria-hidden="true"
+            />
             <span>Return Home</span>
             {/* shimmer */}
             <span
@@ -255,7 +291,8 @@ export default function NotFound() {
           className="mt-16 font-mono text-[10px] text-slate-700 tracking-widest uppercase"
           aria-label="VisualAIze branding"
         >
-          VISUAL<span className="text-blue-700">AI</span>ZE &nbsp;·&nbsp; ERR 404 &nbsp;·&nbsp; GEMINI 2.5
+          VISUAL<span className="text-blue-700">AI</span>ZE &nbsp;·&nbsp; ERR 404 &nbsp;·&nbsp;
+          GEMINI 2.5
         </motion.p>
       </motion.div>
     </main>

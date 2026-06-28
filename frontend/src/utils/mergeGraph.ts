@@ -15,15 +15,15 @@ import { Node, Edge } from 'reactflow';
  */
 
 export function mergeGraph(
-  incoming: { nodes: Node[], edges: Edge[] },
-  existing: { nodes: Node[], edges: Edge[] },
+  incoming: { nodes: Node[]; edges: Edge[] },
+  existing: { nodes: Node[]; edges: Edge[] },
   preserveAll: boolean = false
-): { nodes: Node[], edges: Edge[] } {
+): { nodes: Node[]; edges: Edge[] } {
   const existingNodeMap = new Map(existing.nodes.map((n) => [n.id, n]));
   const mergedNodeMap = new Map<string, Node>();
 
   if (preserveAll) {
-    existing.nodes.forEach(n => mergedNodeMap.set(n.id, n));
+    existing.nodes.forEach((n) => mergedNodeMap.set(n.id, n));
   }
 
   incoming.nodes.forEach((node) => {
@@ -37,7 +37,7 @@ export function mergeGraph(
 
   const mergedEdgeMap = new Map<string, Edge>();
   if (preserveAll) {
-    existing.edges.forEach(e => mergedEdgeMap.set(e.id, e));
+    existing.edges.forEach((e) => mergedEdgeMap.set(e.id, e));
   }
 
   incoming.edges.forEach((edge) => {
