@@ -1,8 +1,8 @@
 annotated-doc==0.0.4
 annotated-types==0.7.0
 anyio==4.13.0
-certifi==2026.1.4
-charset-normalizer==3.4.4
+certifi==2026.6.17
+charset-normalizer==3.4.7
 click==8.4.1
 colorama==0.4.6
 distro==1.9.0
@@ -10,7 +10,7 @@ exceptiongroup==1.3.1
 fastapi==0.128.0
 google-ai-generativelanguage==0.6.15
 google-api-core==2.31.0
-google-api-python-client==2.188.0
+google-api-python-client==2.197.0
 google-auth==2.47.0
 google-auth-httplib2==0.3.0
 google-generativeai==0.8.6
@@ -25,9 +25,9 @@ httpx==0.28.1
 idna==3.16
 jiter==0.12.0
 openai==2.15.0
-proto-plus==1.27.0
+proto-plus==1.28.0
 protobuf==5.29.6
-pyasn1==0.6.2
+pyasn1==0.6.3
 pyasn1_modules==0.4.2
 pydantic==2.13.4
 pydantic_core==2.46.4
@@ -37,8 +37,8 @@ PyYAML==6.0.3
 requests==2.33.0
 rsa==4.9.1
 sniffio==1.3.1
-starlette==1.0.1
-tqdm==4.67.1
+starlette==1.3.1
+tqdm==4.68.3
 typing-inspection==0.4.2
 typing_extensions==4.15.0
 uritemplate==4.2.0
