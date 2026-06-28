@@ -10,7 +10,7 @@ import {
   Activity, BookOpen, PlayCircle, Layers, Code, Copy, Check, Zap,
   Globe, Mic, Download, ChevronDown, MessageSquare, Send, Paperclip,
   PanelRightClose, PanelRightOpen, AlertTriangle, ArrowRight, X, RefreshCw,
-  Maximize2, Minimize2, ZoomIn, ZoomOut, Maximize, Lock, Unlock, History,Hand, MousePointer2
+  Maximize2, Minimize2, ZoomIn, ZoomOut, Maximize, Lock, Unlock, History,Hand, MousePointer2, Undo2, Redo2, Trash2
 } from 'lucide-react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import ReactFlow, {
@@ -300,6 +300,45 @@ function EditorContent({ onBack }: EditorProps) {
     nodeId: string | null;
   }>({ visible: false, x: 0, y: 0, nodeId: null });
 
+  const { getNodes, getEdges, fitView, zoomIn, zoomOut } = useReactFlow();
+
+  // --- Undo / Redo Stack ---
+  const undoStack = useRef<{ nodes: Node[]; edges: Edge[] }[]>([]);
+  const redoStack = useRef<{ nodes: Node[]; edges: Edge[] }[]>([]);
+  const maxUndoSteps = 50;
+  const skipNextUndoPush = useRef(false);
+
+  const pushUndo = useCallback(() => {
+    if (skipNextUndoPush.current) {
+      skipNextUndoPush.current = false;
+      return;
+    }
+    const snapshot = { nodes: structuredClone(getNodes()), edges: structuredClone(getEdges()) };
+    undoStack.current.push(snapshot);
+    if (undoStack.current.length > maxUndoSteps) undoStack.current.shift();
+    redoStack.current = [];
+  }, [getNodes, getEdges]);
+
+  const undo = useCallback(() => {
+    const snapshot = undoStack.current.pop();
+    if (snapshot) {
+      redoStack.current.push({ nodes: structuredClone(getNodes()), edges: structuredClone(getEdges()) });
+      skipNextUndoPush.current = true;
+      setNodes(snapshot.nodes);
+      setEdges(snapshot.edges);
+    }
+  }, [getNodes, getEdges, setNodes, setEdges]);
+
+  const redo = useCallback(() => {
+    const snapshot = redoStack.current.pop();
+    if (snapshot) {
+      undoStack.current.push({ nodes: structuredClone(getNodes()), edges: structuredClone(getEdges()) });
+      skipNextUndoPush.current = true;
+      setNodes(snapshot.nodes);
+      setEdges(snapshot.edges);
+    }
+  }, [getNodes, getEdges, setNodes, setEdges]);
+
   const NODE_COLORS = [
     { label: 'Default', value: '' },
     { label: 'Emerald', value: 'emerald' },
@@ -318,6 +357,7 @@ function EditorContent({ onBack }: EditorProps) {
   );
 
   const handleColorSelect = useCallback((color: string) => {
+    pushUndo();
     setNodes((nds) =>
       nds.map((n) =>
         n.id === contextMenu.nodeId
@@ -326,7 +366,7 @@ function EditorContent({ onBack }: EditorProps) {
       )
     );
     setContextMenu({ visible: false, x: 0, y: 0, nodeId: null });
-  }, [contextMenu.nodeId]);
+  }, [contextMenu.nodeId, pushUndo]);
 
   useEffect(() => {
     const handleClickOutside = () => {
@@ -345,7 +385,6 @@ function EditorContent({ onBack }: EditorProps) {
   const codeCache = useRef(new Map<string, codeObject>());
   const reactFlowWrapper = useRef(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const { getNodes, getEdges, fitView, zoomIn, zoomOut } = useReactFlow();
 
   const copyTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const fitViewTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -366,6 +405,7 @@ function EditorContent({ onBack }: EditorProps) {
   const edgeTypes = useMemo(() => ({}), []);
 
   const onNodesChange: OnNodesChange = useCallback((changes) => {
+    pushUndo();
     setNodes((nds) => {
       const updatedNodes = applyNodeChanges(changes, nds);
       if (socketRef.current?.readyState === WebSocket.OPEN) {
@@ -377,9 +417,10 @@ function EditorContent({ onBack }: EditorProps) {
       }
       return updatedNodes;
     });
-  }, [edges]);
+  }, [edges, pushUndo]);
 
   const onEdgesChange: OnEdgesChange = useCallback((changes) => {
+    pushUndo();
     setEdges((eds) => {
       const updatedEdges = applyEdgeChanges(changes, eds);
       if (socketRef.current?.readyState === WebSocket.OPEN) {
@@ -393,7 +434,7 @@ function EditorContent({ onBack }: EditorProps) {
       }
       return updatedEdges;
     });
-  }, [nodes]);
+  }, [nodes, pushUndo]);
 
   const rafRef = useRef<number | null>(null);
   const socketRef = useRef<WebSocket | null>(null);
@@ -525,6 +566,7 @@ function EditorContent({ onBack }: EditorProps) {
         { nodes: getNodes(), edges: getEdges() },
         isRefineMode
       );
+      pushUndo();
       flushSync(() => {
         setNodes(merged.nodes);
         setEdges(merged.edges);
@@ -566,6 +608,7 @@ function EditorContent({ onBack }: EditorProps) {
   };
 
   const loadFromHistory = (diagram: SavedDiagram) => {
+    pushUndo();
     setPrompt(diagram.prompt);
     setGraphData(diagram.data as any);
     setNodes(diagram.data.nodes);
@@ -832,15 +875,25 @@ function EditorContent({ onBack }: EditorProps) {
         e.preventDefault();
         submitForm();
       }
+
+      if ((e.metaKey || e.ctrlKey) && e.key === "z" && !e.shiftKey) {
+        e.preventDefault();
+        undo();
+      }
+      if (((e.metaKey || e.ctrlKey) && e.key === "y") || ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === "z")) {
+        e.preventDefault();
+        redo();
+      }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isFullscreen]);
+  }, [isFullscreen, undo, redo, submitForm]);
 
   // 🗑️ Clear All function
   const handleClearAll = () => {
     if (nodes.length === 0) return;
     if (confirm("Are you sure you want to clear the entire diagram? This action cannot be undone.")) {
+      pushUndo();
       setNodes([]);
       setEdges([]);
       setGraphData(null);
@@ -1012,6 +1065,21 @@ function EditorContent({ onBack }: EditorProps) {
                       aria-label="Toggle interactive"
                     >
                       <Lock size={14} />
+                    </ControlButton>
+                    {/* UNDO / REDO BUTTONS */}
+                    <ControlButton
+                      onClick={undo}
+                      title="Undo (Ctrl+Z)"
+                      aria-label="Undo"
+                    >
+                      <Undo2 size={14} />
+                    </ControlButton>
+                    <ControlButton
+                      onClick={redo}
+                      title="Redo (Ctrl+Y)"
+                      aria-label="Redo"
+                    >
+                      <Redo2 size={14} />
                     </ControlButton>
                     {/* 🗑️ CLEAR ALL BUTTON - CONTROLS PANEL */}
                     <ControlButton

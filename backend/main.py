@@ -7,7 +7,8 @@ import hashlib
 import logging
 from fastapi import FastAPI, HTTPException, Request, WebSocket, WebSocketDisconnect
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, ValidationError, model_validator
+from typing import Optional
 from fastapi.middleware.cors import CORSMiddleware
 import google.generativeai as genai
 from google.api_core import exceptions as google_exceptions
@@ -242,6 +243,39 @@ class CodeRequest(BaseModel):
     prompt: str
     language: str
 
+# --- Pydantic schema for AI graph response validation ---
+
+class _NodeSchema(BaseModel):
+    id: str
+    label: str
+
+class _EdgeSchema(BaseModel):
+    source: str
+    target: str
+    label: str
+
+class GraphSchema(BaseModel):
+    title: str = Field(default="")
+    summary: str = Field(default="")
+    explanation: str = Field(default="")
+    execution_trace: str = Field(default="")
+    code_snippet: str = Field(default="")
+    code_explanation: Optional[str] = None
+    example_input: Optional[str] = None
+    nodes: list[_NodeSchema] = Field(default=[])
+    edges: list[_EdgeSchema] = Field(default=[])
+
+    @model_validator(mode="after")
+    def check_graph(self):
+        if not self.nodes:
+            raise ValueError("Graph must contain at least one node")
+        return self
+
+def validate_graph_json(data: dict) -> dict:
+    """Validate parsed JSON against GraphSchema. Raises ValidationError on failure."""
+    validated = GraphSchema(**data)
+    return validated.model_dump()
+
 def get_smart_response(prompt_text: str, use_json: bool = False) -> str:
     """
     Generates a response from the LLM based on the prompt.
@@ -387,29 +421,54 @@ async def generate_graph(request: Request, payload: GraphRequest):
     except Exception:
         logger.warning("⚠️ Cache read failed — proceeding without cache.")
 
-    try:
-        response_text = get_smart_response(
-            f"{_SYSTEM_PROMPT}\n\nUSER PROMPT: {payload.prompt}",
-            use_json=True
-        )
-        result_json = parse_json_response(response_text)
+    max_attempts = 2
+    last_error: Exception | None = None
+
+    for attempt in range(max_attempts):
         try:
-            cache.setex(cache_key, 86400, json.dumps(result_json))
-            logger.info("💾 Cached new graph layout.")
-        except Exception:
-            logger.warning("⚠️ Cache write failed — response will not be cached.")
-        return result_json
-    except HTTPException:
-        raise
-    except json.JSONDecodeError as je:
-        logger.error("JSONDecodeError: %s", je)
-        raise HTTPException(
-            status_code=400,
-            detail="GEMINI_BAD_REQUEST: The AI visualization model failed to output structured JSON. This usually occurs if the prompt contains invalid commands, malicious requests, or is outside the scope of system visualization, resulting in a refusal or malformed output."
+            response_text = get_smart_response(
+                f"{_SYSTEM_PROMPT}\n\nUSER PROMPT: {payload.prompt}",
+                use_json=True
+            )
+            result_json = parse_json_response(response_text)
+            validated = validate_graph_json(result_json)
+            try:
+                cache.setex(cache_key, 86400, json.dumps(validated))
+                logger.info("💾 Cached new graph layout.")
+            except Exception:
+                logger.warning("⚠️ Cache write failed — response will not be cached.")
+            return validated
+        except ValidationError as ve:
+            last_error = ve
+            logger.warning("⚠️ Pydantic validation failed (attempt %d/2): %s", attempt + 1, ve)
+            if attempt < max_attempts - 1:
+                logger.info("🔄 Retrying AI generation after schema validation failure...")
+                continue
+        except HTTPException:
+            raise
+        except json.JSONDecodeError as je:
+            last_error = je
+            logger.error("JSONDecodeError: %s", je)
+            if attempt < max_attempts - 1:
+                logger.info("🔄 Retrying AI generation after JSON decode failure...")
+                continue
+            break
+        except Exception as e:
+            logger.exception("Unhandled error in /generate")
+            raise HTTPException(status_code=500, detail=_GENERIC_ERROR)
+
+    detail_msg = (
+        "GEMINI_BAD_REQUEST: The AI visualization model failed to output a valid graph schema "
+        "after multiple attempts. This usually occurs if the prompt contains invalid commands, "
+        "malicious requests, or is outside the scope of system visualization, resulting in a "
+        "refusal or malformed output."
+    )
+    if isinstance(last_error, ValidationError):
+        detail_msg = (
+            "GEMINI_BAD_REQUEST: The AI output failed schema validation. "
+            f"Details: {last_error}"
         )
-    except Exception as e:
-        logger.exception("Unhandled error in /generate")
-        raise HTTPException(status_code=500, detail=_GENERIC_ERROR)
+    raise HTTPException(status_code=400, detail=detail_msg)
 
 
 @app.post("/chat")
