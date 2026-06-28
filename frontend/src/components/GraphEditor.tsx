@@ -686,6 +686,24 @@ function EditorContent({ onBack }: EditorProps) {
     });
   };
 
+  const handleExportJson = () => {
+    const exportData = {
+      nodes: nodes.map(n => ({ id: n.id, label: n.data?.label, position: n.position })),
+      edges: edges.map(e => ({ id: e.id, source: e.source, target: e.target, label: e.label })),
+      graphData: graphData ? {
+        title: graphData.title,
+        summary: graphData.summary,
+        explanation: graphData.explanation,
+        execution_trace: graphData.execution_trace,
+        code_snippet: graphData.code_snippet,
+      } : null,
+      exportedAt: new Date().toISOString(),
+    };
+    const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+    const link = document.createElement('a'); link.download = 'visualaize-graph.json'; link.href = URL.createObjectURL(blob); link.click();
+    URL.revokeObjectURL(link.href);
+  };
+
   const handleCopyCode = () => {
     if (graphData?.code_snippet) {
       navigator.clipboard.writeText(graphData.code_snippet);
@@ -885,7 +903,16 @@ function EditorContent({ onBack }: EditorProps) {
           </button>
 
           <div className="flex gap-4 pointer-events-auto">
-             {/* --- ADDED HISTORY BUTTON HERE --- */}
+             {graphData && (
+               <button
+                 onClick={handleExportJson}
+                 className="focus-ring flex items-center gap-2 px-3 py-1 rounded-full bg-slate-800/80 backdrop-blur-md border border-white/10 text-xs text-slate-300 hover:bg-emerald-600 hover:text-white transition-all shadow-lg"
+                 title="Export graph as JSON"
+                 aria-label="Download graph as JSON"
+               >
+                 <Code size={14} /> SAVE JSON
+               </button>
+             )}
              <button 
                 onClick={() => setHistoryOpen(true)}
                 className="focus-ring flex items-center gap-2 px-3 py-1 rounded-full bg-slate-800/80 backdrop-blur-md border border-white/10 text-xs text-slate-300 hover:bg-blue-600 hover:text-white transition-all shadow-lg"
@@ -1138,9 +1165,14 @@ function EditorContent({ onBack }: EditorProps) {
                    <div className="flex items-center gap-2 mb-2 text-xs font-bold tracking-widest text-blue-500 uppercase"><Layers size={12} /> Analysis Complete</div>
                    <h2 className="text-xl font-bold text-white leading-tight">{graphData.title}</h2>
                 </div>
-                <button onClick={handleExport} className="focus-ring p-2 text-slate-400 hover:text-white hover:bg-white/10 rounded-lg transition-colors" title="Export as PNG" aria-label="Export graph as PNG">
+                <div className="flex items-center gap-1">
+                  <button onClick={handleExportJson} className="focus-ring p-2 text-slate-400 hover:text-white hover:bg-white/10 rounded-lg transition-colors" title="Export as JSON" aria-label="Export graph as JSON">
+                    <Code size={18} />
+                  </button>
+                  <button onClick={handleExport} className="focus-ring p-2 text-slate-400 hover:text-white hover:bg-white/10 rounded-lg transition-colors" title="Export as PNG" aria-label="Export graph as PNG">
                     <Download size={18} />
-                </button>
+                  </button>
+                </div>
             </div>
 
             <div className="flex border-b border-white/10 min-w-[450px]">
