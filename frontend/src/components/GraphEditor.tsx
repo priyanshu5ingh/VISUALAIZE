@@ -10,7 +10,7 @@ import {
   Activity, BookOpen, PlayCircle, Layers, Code, Copy, Check, Zap,
   Globe, Mic, Download, ChevronDown, MessageSquare, Send, Paperclip,
   PanelRightClose, PanelRightOpen, AlertTriangle, ArrowRight, X, RefreshCw,
-  Maximize2, Minimize2, ZoomIn, ZoomOut, Maximize, Lock, Unlock, History,Hand, MousePointer2
+  Maximize2, Minimize2, ZoomIn, ZoomOut, Maximize, Lock, Unlock, History, Hand, MousePointer2
 } from 'lucide-react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import ReactFlow, {
@@ -279,7 +279,6 @@ function EditorContent({ onBack }: EditorProps) {
   const [isRefineMode, setIsRefineMode] = useState(false);
   const clientId = useRef(crypto.randomUUID());
   const roomId = useRef("room_1");
-  //new
   const [panOnDrag, setPanOnDrag] = useState(true);
   const [errorState, setErrorState] = useState<{
     show: boolean;
@@ -365,6 +364,7 @@ function EditorContent({ onBack }: EditorProps) {
 
   const edgeTypes = useMemo(() => ({}), []);
 
+  // FIX 1: removed stale `edges` dep — edges not used inside this callback
   const onNodesChange: OnNodesChange = useCallback((changes) => {
     setNodes((nds) => {
       const updatedNodes = applyNodeChanges(changes, nds);
@@ -377,8 +377,9 @@ function EditorContent({ onBack }: EditorProps) {
       }
       return updatedNodes;
     });
-  }, [edges]);
+  }, []);
 
+  // FIX 2: use getNodes() instead of stale `nodes` closure
   const onEdgesChange: OnEdgesChange = useCallback((changes) => {
     setEdges((eds) => {
       const updatedEdges = applyEdgeChanges(changes, eds);
@@ -386,14 +387,14 @@ function EditorContent({ onBack }: EditorProps) {
         socketRef.current.send(
           JSON.stringify({
             type: "SYNC_GRAPH",
-            nodes,
+            nodes: getNodes(),
             edges: updatedEdges,
           })
         );
       }
       return updatedEdges;
     });
-  }, [nodes]);
+  }, [getNodes]);
 
   const rafRef = useRef<number | null>(null);
   const socketRef = useRef<WebSocket | null>(null);
@@ -727,7 +728,7 @@ function EditorContent({ onBack }: EditorProps) {
 
   const showBackground = nodes.length === 0;
 
-  const { x, y, zoom } = getViewport();
+  // FIX 3: removed unused x, y, zoom destructure (CodeRabbit nitpick)
   const buffer = 500;
 
   const visibleNodes = useMemo(() => {
@@ -769,8 +770,10 @@ function EditorContent({ onBack }: EditorProps) {
     return () => window.removeEventListener("mousemove", handleMouseMove);
   }, []);
 
+  // FIX 4: WebSocket URL derived from BACKEND_URL instead of hardcoded localhost
   useEffect(() => {
-    const socket = new WebSocket("ws://localhost:8000/ws");
+    const wsUrl = BACKEND_URL.replace(/^http/, 'ws') + '/ws';
+    const socket = new WebSocket(wsUrl);
     socketRef.current = socket;
 
     socket.onopen = () => {
@@ -885,14 +888,12 @@ function EditorContent({ onBack }: EditorProps) {
           </button>
 
           <div className="flex gap-4 pointer-events-auto">
-             {/* --- ADDED HISTORY BUTTON HERE --- */}
              <button 
                 onClick={() => setHistoryOpen(true)}
                 className="focus-ring flex items-center gap-2 px-3 py-1 rounded-full bg-slate-800/80 backdrop-blur-md border border-white/10 text-xs text-slate-300 hover:bg-blue-600 hover:text-white transition-all shadow-lg"
              >
                 <History size={14} /> HISTORY
              </button>
-             {/* ------------------------------- */}
 
              <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-slate-900/60 backdrop-blur-md border border-white/10 text-xs font-mono text-emerald-400 shadow-lg">
                 <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"/> ONLINE
@@ -913,16 +914,19 @@ function EditorContent({ onBack }: EditorProps) {
         </div>
         )}
 
-        <div className="p-3 border-b border-white/10">
-          <div className="text-xs font-bold text-slate-400 mb-2">ONLINE USERS</div>
-          <div className="space-y-1">
-            {users.map((u) => (
-              <div key={u} className="text-xs text-emerald-400 bg-emerald-500/10 px-2 py-1 rounded">
-                {u}
-              </div>
-            ))}
+        {/* FIX 5: ONLINE USERS panel hidden in fullscreen mode */}
+        {!isFullscreen && (
+          <div className="p-3 border-b border-white/10">
+            <div className="text-xs font-bold text-slate-400 mb-2">ONLINE USERS</div>
+            <div className="space-y-1">
+              {users.map((u) => (
+                <div key={u} className="text-xs text-emerald-400 bg-emerald-500/10 px-2 py-1 rounded">
+                  {u}
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Focus mode toggle */}
         <button
@@ -1013,14 +1017,13 @@ function EditorContent({ onBack }: EditorProps) {
                     >
                       <Lock size={14} />
                     </ControlButton>
-                    {/* 🗑️ CLEAR ALL BUTTON - CONTROLS PANEL */}
                     <ControlButton
                       onClick={handleClearAll}
                       title="Clear All"
                       aria-label="Clear all nodes and edges"
                       className="hover:bg-red-500/20 transition-colors"
                     >
-                      <Trash2 size={14} className="text-red-400 hover:text-red-300" />
+                      <X size={14} className="text-red-400 hover:text-red-300" />
                     </ControlButton>
                   </Controls>
                 )}
