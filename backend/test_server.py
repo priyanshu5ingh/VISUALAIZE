@@ -174,3 +174,53 @@ def test_generate_no_api_key_returns_503():
         assert response.status_code == 503
     finally:
         main.GENAI_KEY = original_key
+
+VALID_GRAPH_JSON = json.dumps({
+    "title": "Test",
+    "summary": "summary",
+    "explanation": "explanation",
+    "execution_trace": "trace",
+    "code_snippet": "code",
+    "nodes": [{"id": "1", "label": "Start"}],
+    "edges": [{"source": "1", "target": "2"}]
+})
+
+INVALID_GRAPH_JSON = json.dumps({
+    "title": "Test"
+})
+
+@patch.object(main, "get_smart_response")
+def test_generate_validates_schema_success(mock_ai):
+    """Valid GraphSchema JSON should pass Pydantic validation and return 200."""
+    mock_ai.return_value = VALID_GRAPH_JSON
+    with patch("main.GENAI_KEY", "mock_key_for_testing"):
+        response = client.post("/generate", json={"prompt": "valid graph"})
+        assert response.status_code == 200
+        data = response.json()
+        assert data["title"] == "Test"
+        assert len(data["nodes"]) == 1
+
+@patch.object(main, "get_smart_response")
+def test_generate_retries_on_invalid_schema(mock_ai):
+    """Invalid GraphSchema should trigger exactly one retry."""
+    with patch.object(main, "cache") as mock_cache:
+        mock_cache.get.return_value = None
+        mock_ai.side_effect = [
+            INVALID_GRAPH_JSON,
+            VALID_GRAPH_JSON,
+        ]
+        with patch("main.GENAI_KEY", "mock_key_for_testing"):
+            response = client.post("/generate", json={"prompt": "retry graph"})
+            assert response.status_code == 200
+            assert mock_ai.call_count == 2
+
+@patch.object(main, "get_smart_response")
+def test_generate_fails_after_max_retries(mock_ai):
+    """Repeatedly invalid GraphSchema should return 400 after max retries."""
+    with patch.object(main, "cache") as mock_cache:
+        mock_cache.get.return_value = None
+        mock_ai.return_value = INVALID_GRAPH_JSON
+        with patch("main.GENAI_KEY", "mock_key_for_testing"):
+            response = client.post("/generate", json={"prompt": "bad graph"})
+            assert response.status_code == 400
+            assert "schema" in response.json().get("detail", "").lower()
