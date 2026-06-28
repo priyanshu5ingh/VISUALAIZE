@@ -1234,9 +1234,16 @@ function EditorContent({ onBack }: EditorProps) {
                         </button>
                       </div>
                     </div>
-                    <div className="flex-1 rounded-xl bg-black/50 border border-white/10 p-4 overflow-x-auto relative">
+                    <div className="flex-1 rounded-xl bg-black/50 border border-white/10 p-4 overflow-x-auto relative group">
                         {isRegeneratingCode && <div className="absolute inset-0 bg-black/80 flex items-center justify-center text-blue-400 text-xs font-bold animate-pulse z-10">REWRITING...</div>}
                       <pre className="font-mono text-xs text-slate-300 leading-relaxed whitespace-pre-wrap">{graphData.code_snippet}</pre>
+                      <button
+                        onClick={handleCopyCode}
+                        className="absolute top-2 right-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1.5 px-2 py-1 rounded-md bg-slate-800/80 border border-white/10 text-xs text-slate-300 hover:text-white hover:border-emerald-500/50"
+                      >
+                        {copied ? <Check size={12} /> : <Copy size={12} />}
+                        {copied ? 'Copied!' : 'Copy'}
+                      </button>
                     </div>
                   </div>
                 )}
