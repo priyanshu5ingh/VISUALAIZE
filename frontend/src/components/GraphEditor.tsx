@@ -1,5 +1,7 @@
 // frontend/src/components/GraphEditor.tsx
 'use client';
+import HistoryPanel from './HistoryPanel';
+import { saveToHistory, getHistory, deleteFromHistory, SavedDiagram } from '../utils/storage';
 
 import { toPng } from 'html-to-image';
 import { getLayoutedElements } from '../utils/layout';
@@ -8,12 +10,12 @@ import {
   Activity, BookOpen, PlayCircle, Layers, Code, Copy, Check, Zap,
   Globe, Mic, Download, ChevronDown, MessageSquare, Send, Paperclip,
   PanelRightClose, PanelRightOpen, AlertTriangle, ArrowRight, X, RefreshCw,
-  Maximize2, Minimize2
+  Maximize2, Minimize2, ZoomIn, ZoomOut, Maximize, Lock, Unlock, History, Hand, MousePointer2
 } from 'lucide-react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import ReactFlow, {
   applyEdgeChanges, applyNodeChanges,
-  Background, BackgroundVariant, Controls,
+  Background, BackgroundVariant, Controls, ControlButton,
   Edge,
   MarkerType,
   MiniMap,
@@ -21,7 +23,8 @@ import ReactFlow, {
   OnEdgesChange,
   OnNodesChange,
   ReactFlowProvider,
-  useReactFlow
+  useReactFlow,
+  SelectionMode 
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import CustomNode from '../components/CustomNode';
@@ -160,7 +163,6 @@ const SystemLogs = () => {
 };
 
 // Empty state shown before any diagram is generated.
-// Sits above the canvas, centered, with a faint floating node-tree illustration.
 const EmptyState = () => {
   return (
     <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none select-none z-10">
@@ -257,6 +259,10 @@ function EditorContent({ onBack }: EditorProps) {
   const [edges, setEdges] = useState<Edge[]>([]);
   const [viewport, setViewport] = useState({ x: 0, y: 0, zoom: 1 });
   const [prompt, setPrompt] = useState('');
+  const submitForm = () => {
+    const form = document.querySelector("form");
+    form?.requestSubmit();
+  };
   const [isGenerating, setIsGenerating] = useState(false);
   const [graphData, setGraphData] = useState<GraphData | null>(null);
   const [activeTab, setActiveTab] = useState<'ANALYSIS' | 'CODE' | 'CHAT'>('ANALYSIS');
@@ -273,6 +279,7 @@ function EditorContent({ onBack }: EditorProps) {
   const [isRefineMode, setIsRefineMode] = useState(false);
   const clientId = useRef(crypto.randomUUID());
   const roomId = useRef("room_1");
+  const [panOnDrag, setPanOnDrag] = useState(true);
   const [errorState, setErrorState] = useState<{
     show: boolean;
     title: string;
@@ -283,11 +290,61 @@ function EditorContent({ onBack }: EditorProps) {
 
   const [cursors, setCursors] = useState<Record<string, { x: number; y: number }>>({});
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [savedHistory, setSavedHistory] = useState<SavedDiagram[]>([]);
+  const [contextMenu, setContextMenu] = useState<{
+    visible: boolean;
+    x: number;
+    y: number;
+    nodeId: string | null;
+  }>({ visible: false, x: 0, y: 0, nodeId: null });
+
+  const NODE_COLORS = [
+    { label: 'Default', value: '' },
+    { label: 'Emerald', value: 'emerald' },
+    { label: 'Purple', value: 'purple' },
+    { label: 'Amber', value: 'amber' },
+    { label: 'Rose', value: 'rose' },
+    { label: 'Cyan', value: 'cyan' },
+  ];
+
+  const handleNodeContextMenu = useCallback(
+    (e: React.MouseEvent, node: Node) => {
+      e.preventDefault();
+      setContextMenu({ visible: true, x: e.clientX, y: e.clientY, nodeId: node.id });
+    },
+    []
+  );
+
+  const handleColorSelect = useCallback((color: string) => {
+    setNodes((nds) =>
+      nds.map((n) =>
+        n.id === contextMenu.nodeId
+          ? { ...n, data: { ...n.data, nodeColor: color } }
+          : n
+      )
+    );
+    setContextMenu({ visible: false, x: 0, y: 0, nodeId: null });
+  }, [contextMenu.nodeId]);
+
+  useEffect(() => {
+    const handleClickOutside = () => {
+      if (contextMenu.visible) {
+        setContextMenu({ visible: false, x: 0, y: 0, nodeId: null });
+      }
+    };
+    window.addEventListener('click', handleClickOutside);
+    return () => window.removeEventListener('click', handleClickOutside);
+  }, [contextMenu.visible]);
+
+  useEffect(() => {
+    setSavedHistory(getHistory());
+  }, []);
 
   const codeCache = useRef(new Map<string, codeObject>());
   const reactFlowWrapper = useRef(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const { getNodes, getEdges, fitView } = useReactFlow();
+  const { getNodes, getEdges, fitView, zoomIn, zoomOut } = useReactFlow();
 
   const copyTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const fitViewTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -307,6 +364,7 @@ function EditorContent({ onBack }: EditorProps) {
 
   const edgeTypes = useMemo(() => ({}), []);
 
+  // FIX 1: removed stale `edges` dep — edges not used inside this callback
   const onNodesChange: OnNodesChange = useCallback((changes) => {
     setNodes((nds) => {
       const updatedNodes = applyNodeChanges(changes, nds);
@@ -319,8 +377,9 @@ function EditorContent({ onBack }: EditorProps) {
       }
       return updatedNodes;
     });
-  }, [edges]);
+  }, []);
 
+  // FIX 2: use getNodes() instead of stale `nodes` closure
   const onEdgesChange: OnEdgesChange = useCallback((changes) => {
     setEdges((eds) => {
       const updatedEdges = applyEdgeChanges(changes, eds);
@@ -328,14 +387,14 @@ function EditorContent({ onBack }: EditorProps) {
         socketRef.current.send(
           JSON.stringify({
             type: "SYNC_GRAPH",
-            nodes,
+            nodes: getNodes(),
             edges: updatedEdges,
           })
         );
       }
       return updatedEdges;
     });
-  }, [nodes]);
+  }, [getNodes]);
 
   const rafRef = useRef<number | null>(null);
   const socketRef = useRef<WebSocket | null>(null);
@@ -461,6 +520,7 @@ function EditorContent({ onBack }: EditorProps) {
       }));
 
       const { nodes: layoutedNodes, edges: layoutedEdges } = getLayoutedElements(rawNodes, rawEdges);
+      
       const merged = mergeGraph(
         { nodes: layoutedNodes, edges: layoutedEdges },
         { nodes: getNodes(), edges: getEdges() },
@@ -470,6 +530,11 @@ function EditorContent({ onBack }: EditorProps) {
         setNodes(merged.nodes);
         setEdges(merged.edges);
       });
+
+      const newEntry = saveToHistory(text, data, merged.nodes, merged.edges);
+      if (newEntry) {
+        setSavedHistory(prev => [newEntry, ...prev].slice(0, 20));
+      }
 
       if (fitViewTimeoutRef.current) clearTimeout(fitViewTimeoutRef.current);
       fitViewTimeoutRef.current = setTimeout(() => fitView({ padding: 0.15, duration: 800 }), 150);
@@ -499,6 +564,20 @@ function EditorContent({ onBack }: EditorProps) {
     NODE_DELETE: "NODE_DELETE",
     EDGE_ADD: "EDGE_ADD",
     EDGE_DELETE: "EDGE_DELETE"
+  };
+
+  const loadFromHistory = (diagram: SavedDiagram) => {
+    setPrompt(diagram.prompt);
+    setGraphData(diagram.data as any);
+    setNodes(diagram.data.nodes);
+    setEdges(diagram.data.edges);
+    setHistoryOpen(false);
+    setIsSidebarOpen(true);
+  };
+
+  const handleDeleteHistory = (id: string) => {
+    const updated = deleteFromHistory(id);
+    if (updated) setSavedHistory(updated);
   };
 
   const regenerateCode = async (newLang: string) => {
@@ -617,9 +696,39 @@ function EditorContent({ onBack }: EditorProps) {
     }
   };
 
+  const handleDownloadCode = () => {
+    if (!graphData?.code_snippet) return;
+
+    const blob = new Blob(
+      [graphData.code_snippet],
+      { type: "text/plain" }
+    );
+
+    const url = URL.createObjectURL(blob);
+
+    const extensionMap: Record<string, string> = {
+      Python: "py",
+      JavaScript: "js",
+      "C++": "cpp",
+      Java: "java",
+    };
+
+    const extension = extensionMap[codeLanguage] ?? "txt";
+
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `generated-code.${extension}`;
+
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    URL.revokeObjectURL(url);
+  };
+
   const showBackground = nodes.length === 0;
 
-  const { x, y, zoom } = getViewport();
+  // FIX 3: removed unused x, y, zoom destructure (CodeRabbit nitpick)
   const buffer = 500;
 
   const visibleNodes = useMemo(() => {
@@ -661,8 +770,10 @@ function EditorContent({ onBack }: EditorProps) {
     return () => window.removeEventListener("mousemove", handleMouseMove);
   }, []);
 
+  // FIX 4: WebSocket URL derived from BACKEND_URL instead of hardcoded localhost
   useEffect(() => {
-    const socket = new WebSocket("ws://localhost:8000/ws");
+    const wsUrl = BACKEND_URL.replace(/^http/, 'ws') + '/ws';
+    const socket = new WebSocket(wsUrl);
     socketRef.current = socket;
 
     socket.onopen = () => {
@@ -716,16 +827,43 @@ function EditorContent({ onBack }: EditorProps) {
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isFullscreen) setIsFullscreen(false);
+      if (e.key === "Escape" && isFullscreen) {
+        setIsFullscreen(false);
+      }
+
+      if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
+        e.preventDefault();
+        submitForm();
+      }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isFullscreen]);
 
+  // 🗑️ Clear All function
+  const handleClearAll = () => {
+    if (nodes.length === 0) return;
+    if (confirm("Are you sure you want to clear the entire diagram? This action cannot be undone.")) {
+      setNodes([]);
+      setEdges([]);
+      setGraphData(null);
+      setIsSidebarOpen(false);
+      console.log("✨ Canvas cleared successfully");
+    }
+  };
+
   return (
     <div className="relative flex h-screen w-screen bg-black overflow-hidden font-sans text-slate-200">
 
       <style>{glassControlsStyle}</style>
+
+      <HistoryPanel 
+        isOpen={historyOpen} 
+        onClose={() => setHistoryOpen(false)} 
+        history={savedHistory}
+        onLoad={loadFromHistory}
+        onDelete={handleDeleteHistory}
+      />
 
       {/* 3D holographic background — fades out once the graph is generated */}
       <div className={`absolute inset-0 transition-opacity duration-1000 z-0 ${showBackground ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
@@ -750,6 +888,13 @@ function EditorContent({ onBack }: EditorProps) {
           </button>
 
           <div className="flex gap-4 pointer-events-auto">
+             <button 
+                onClick={() => setHistoryOpen(true)}
+                className="focus-ring flex items-center gap-2 px-3 py-1 rounded-full bg-slate-800/80 backdrop-blur-md border border-white/10 text-xs text-slate-300 hover:bg-blue-600 hover:text-white transition-all shadow-lg"
+             >
+                <History size={14} /> HISTORY
+             </button>
+
              <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-slate-900/60 backdrop-blur-md border border-white/10 text-xs font-mono text-emerald-400 shadow-lg">
                 <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"/> ONLINE
              </div>
@@ -769,16 +914,19 @@ function EditorContent({ onBack }: EditorProps) {
         </div>
         )}
 
-        <div className="p-3 border-b border-white/10">
-          <div className="text-xs font-bold text-slate-400 mb-2">ONLINE USERS</div>
-          <div className="space-y-1">
-            {users.map((u) => (
-              <div key={u} className="text-xs text-emerald-400 bg-emerald-500/10 px-2 py-1 rounded">
-                {u}
-              </div>
-            ))}
+        {/* FIX 5: ONLINE USERS panel hidden in fullscreen mode */}
+        {!isFullscreen && (
+          <div className="p-3 border-b border-white/10">
+            <div className="text-xs font-bold text-slate-400 mb-2">ONLINE USERS</div>
+            <div className="space-y-1">
+              {users.map((u) => (
+                <div key={u} className="text-xs text-emerald-400 bg-emerald-500/10 px-2 py-1 rounded">
+                  {u}
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Focus mode toggle */}
         <button
@@ -809,7 +957,11 @@ function EditorContent({ onBack }: EditorProps) {
               onNodesChange={onNodesChange}
               onEdgesChange={onEdgesChange}
               onMove={onMove}
+              onNodeContextMenu={handleNodeContextMenu}
               minZoom={0.1}
+              panOnDrag={panOnDrag}
+              selectionOnDrag={!panOnDrag}
+              selectionMode={SelectionMode.Partial}
             >
                 <Background
                     color="#94a3b8"
@@ -819,12 +971,72 @@ function EditorContent({ onBack }: EditorProps) {
                     className="opacity-[0.1]"
                 />
 
-                {nodes.length > 0 && <Controls />}
+                {nodes.length > 0 && (
+                  <Controls showZoom={false} showFitView={false} showInteractive={false}>
+                    <ControlButton
+                       onClick={() => setPanOnDrag(false)}
+                       title="Select Mode"
+                       aria-label="Select Mode"
+                       style={{ background: !panOnDrag ? 'rgba(99, 102, 241, 0.4)' : 'transparent' }}
+                      >
+                    <MousePointer2 size={14} />
+                    </ControlButton>
+                    <ControlButton
+                      onClick={() => setPanOnDrag(true)}
+                      title="Pan Mode"
+                      aria-label="Pan Mode"
+                      style={{ background: panOnDrag ? 'rgba(99, 102, 241, 0.4)' : 'transparent' }}
+                      >
+                    <Hand size={14} />
+                    </ControlButton>
+                    <ControlButton
+                      onClick={() => zoomIn({ duration: 300 })}
+                      title="Zoom In"
+                      aria-label="Zoom in"
+                    >
+                      <ZoomIn size={14} />
+                    </ControlButton>
+                    <ControlButton
+                      onClick={() => zoomOut({ duration: 300 })}
+                      title="Zoom Out"
+                      aria-label="Zoom out"
+                    >
+                      <ZoomOut size={14} />
+                    </ControlButton>
+                    <ControlButton
+                      onClick={() => fitView({ padding: 0.15, duration: 500 })}
+                      title="Fit View"
+                      aria-label="Fit view"
+                    >
+                      <Maximize size={14} />
+                    </ControlButton>
+                    <ControlButton
+                      onClick={() => setNodes(nds => nds.map(n => ({ ...n, draggable: !(n.draggable ?? true) })))}
+                      title="Toggle Interactive (lock/unlock nodes)"
+                      aria-label="Toggle interactive"
+                    >
+                      <Lock size={14} />
+                    </ControlButton>
+                    <ControlButton
+                      onClick={handleClearAll}
+                      title="Clear All"
+                      aria-label="Clear all nodes and edges"
+                      className="hover:bg-red-500/20 transition-colors"
+                    >
+                      <X size={14} className="text-red-400 hover:text-red-300" />
+                    </ControlButton>
+                  </Controls>
+                )}
 
                 {nodes.length > 0 && (
                     <MiniMap
                       className="!border-white/5"
                       nodeColor={(node) => {
+                        const customColor = node.data?.nodeColor;
+                        if (customColor) {
+                          const colorMap: Record<string, string> = { emerald: '#10b981', purple: '#a855f7', amber: '#f59e0b', rose: '#f43f5e', cyan: '#06b6d4' };
+                          if (colorMap[customColor]) return colorMap[customColor];
+                        }
                         const label = node.data?.label?.toLowerCase() || '';
                         if (label.includes('start')) return '#10b981';
                         if (label.includes('end') || label.includes('accept') || label.includes('final')) return '#a855f7';
@@ -888,6 +1100,33 @@ function EditorContent({ onBack }: EditorProps) {
           }}
         />
       ))}
+
+      {contextMenu.visible && (
+        <div
+          className="fixed z-[9999] bg-slate-900/95 backdrop-blur-xl border border-white/10 rounded-xl p-2 shadow-2xl animate-in fade-in zoom-in-95 duration-100"
+          style={{ left: contextMenu.x, top: contextMenu.y }}
+        >
+          <p className="text-[10px] uppercase tracking-widest text-slate-500 font-bold px-2 py-1.5">Node Color</p>
+          <div className="flex gap-1.5 p-1">
+            {NODE_COLORS.map((c) => (
+              <button
+                key={c.value}
+                onClick={() => handleColorSelect(c.value)}
+                className={`w-7 h-7 rounded-full border-2 transition-all hover:scale-125 ${
+                  c.value === '' ? 'border-slate-500 bg-slate-700' :
+                  c.value === 'emerald' ? 'border-emerald-400 bg-emerald-500/30' :
+                  c.value === 'purple' ? 'border-purple-400 bg-purple-500/30' :
+                  c.value === 'amber' ? 'border-amber-400 bg-amber-500/30' :
+                  c.value === 'rose' ? 'border-rose-400 bg-rose-500/30' :
+                  'border-cyan-400 bg-cyan-500/30'
+                }`}
+                title={c.label}
+                aria-label={`Set node color to ${c.label}`}
+              />
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* RIGHT SIDEBAR */}
       {!isFullscreen && (
@@ -980,9 +1219,23 @@ function EditorContent({ onBack }: EditorProps) {
                               <RefreshCw size={14}/>
                             </button>
                       </div>
-                      <button onClick={handleCopyCode} className="focus-ring flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 text-xs font-bold transition-colors">
-                        {copied ? <Check size={14} /> : <Copy size={14} />} {copied ? 'COPIED' : 'COPY'}
-                      </button>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={handleCopyCode}
+                          className="focus-ring flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 text-xs font-bold transition-colors"
+                        >
+                          {copied ? <Check size={14} /> : <Copy size={14} />}
+                          {copied ? 'COPIED' : 'COPY'}
+                        </button>
+
+                        <button
+                          onClick={handleDownloadCode}
+                          className="focus-ring flex items-center gap-2 px-3 py-1.5 rounded-lg bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 text-xs font-bold transition-colors"
+                        >
+                          <Download size={14} />
+                          DOWNLOAD
+                        </button>
+                      </div>
                     </div>
                     <div className="flex-1 rounded-xl bg-black/50 border border-white/10 p-4 overflow-x-auto relative">
                         {isRegeneratingCode && <div className="absolute inset-0 bg-black/80 flex items-center justify-center text-blue-400 text-xs font-bold animate-pulse z-10">REWRITING...</div>}
