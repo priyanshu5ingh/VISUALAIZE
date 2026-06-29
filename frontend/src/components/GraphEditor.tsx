@@ -27,6 +27,7 @@ import ReactFlow, {
   SelectionMode 
 } from 'reactflow';
 import 'reactflow/dist/style.css';
+import CopyButton from '../components/CopyButton';
 import CustomNode from '../components/CustomNode';
 import { mergeGraph } from '../utils/mergeGraph';
 import HolographicScene from './HolographicScene';
@@ -266,7 +267,6 @@ function EditorContent({ onBack }: EditorProps) {
   const [isGenerating, setIsGenerating] = useState(false);
   const [graphData, setGraphData] = useState<GraphData | null>(null);
   const [activeTab, setActiveTab] = useState<'ANALYSIS' | 'CODE' | 'CHAT'>('ANALYSIS');
-  const [copied, setCopied] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [codeLanguage, setCodeLanguage] = useState('Python');
   const [showLanguageDropDown, setshowLanguageDropDown] = useState(false);
@@ -1067,6 +1067,12 @@ function EditorContent({ onBack }: EditorProps) {
                     <Mic size={18} />
                 </button>
 
+                {prompt.trim() && (
+                  <CopyButton text={prompt} label="Copy prompt" className="rounded-full border-0 bg-transparent hover:bg-white/10" />
+                )}
+
+                <button type="submit" disabled={isGenerating} className="px-6 py-2 rounded-full bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs tracking-widest transition-all shadow-lg shadow-blue-500/20">
+                    {isGenerating ? <span className="animate-pulse">PROCESSING</span> : "GENERATE"}
                 {nodes.length > 0 && (
                   <button type="button" onClick={() => setIsRefineMode(!isRefineMode)} title="Toggle Refine Mode" className={`focus-ring p-2 rounded-full transition-all ${isRefineMode ? 'bg-purple-500 text-white shadow-[0_0_10px_rgba(168,85,247,0.5)]' : 'text-slate-400 hover:text-white hover:bg-white/10'}`}>
                       <Layers size={18} />
@@ -1138,9 +1144,12 @@ function EditorContent({ onBack }: EditorProps) {
                    <div className="flex items-center gap-2 mb-2 text-xs font-bold tracking-widest text-blue-500 uppercase"><Layers size={12} /> Analysis Complete</div>
                    <h2 className="text-xl font-bold text-white leading-tight">{graphData.title}</h2>
                 </div>
-                <button onClick={handleExport} className="focus-ring p-2 text-slate-400 hover:text-white hover:bg-white/10 rounded-lg transition-colors" title="Export as PNG" aria-label="Export graph as PNG">
+                <div className="flex items-center gap-1">
+                  <CopyButton text={formatGraphStructure(graphData)} label="Copy graph" iconSize={18} className="border-0 bg-transparent hover:bg-white/10" />
+                  <button onClick={handleExport} className="focus-ring p-2 min-w-[36px] min-h-[36px] text-slate-400 hover:text-white hover:bg-white/10 rounded-lg transition-colors touch-manipulation" title="Export as PNG" aria-label="Export graph as PNG">
                     <Download size={18} />
-                </button>
+                  </button>
+                </div>
             </div>
 
             <div className="flex border-b border-white/10 min-w-[450px]">
@@ -1153,17 +1162,26 @@ function EditorContent({ onBack }: EditorProps) {
                 {activeTab === 'ANALYSIS' && (
                   <>
                     <div className="p-4 rounded-xl bg-white/5 border border-white/5">
-                        <div className="flex items-center gap-2 mb-3 text-sm font-semibold text-white"><Activity size={16} className="text-emerald-400" /> Executive Summary</div>
+                        <div className="flex items-center justify-between gap-2 mb-3">
+                          <div className="flex items-center gap-2 text-sm font-semibold text-white"><Activity size={16} className="text-emerald-400" /> Executive Summary</div>
+                          <CopyButton text={graphData.summary} label="Copy summary" />
+                        </div>
                         <p className="text-sm text-slate-300 leading-relaxed">{graphData.summary}</p>
                     </div>
                     <div>
-                        <div className="flex items-center gap-2 mb-4 text-sm font-semibold text-white border-b border-white/5 pb-2"><BookOpen size={16} className="text-purple-400" /> System Logic</div>
+                        <div className="flex items-center justify-between gap-2 mb-4 text-sm font-semibold text-white border-b border-white/5 pb-2">
+                          <div className="flex items-center gap-2"><BookOpen size={16} className="text-purple-400" /> System Logic</div>
+                          <CopyButton text={graphData.explanation} label="Copy explanation" />
+                        </div>
                         <div className="text-sm text-slate-400 leading-relaxed space-y-4">{graphData.explanation}</div>
                     </div>
                     <div className="rounded-xl overflow-hidden border border-white/10 bg-black/40">
-                        <div className="px-4 py-2 bg-white/5 border-b border-white/5 flex justify-between items-center">
+                        <div className="px-4 py-2 bg-white/5 border-b border-white/5 flex justify-between items-center gap-2">
                             <span className="text-xs font-mono text-slate-500">EXECUTION TRACE</span>
-                            <PlayCircle size={14} className="text-emerald-500" />
+                            <div className="flex items-center gap-2">
+                              <CopyButton text={formatExecutionTrace(graphData)} label="Copy execution trace" />
+                              <PlayCircle size={14} className="text-emerald-500 shrink-0" />
+                            </div>
                         </div>
                         <div className="p-4 font-mono text-xs space-y-3">
                             <div className="flex gap-4"><span className="text-slate-600">INPUT</span><span className="text-emerald-400 tracking-widest">{graphData.example_input}</span></div>
@@ -1251,10 +1269,16 @@ function EditorContent({ onBack }: EditorProps) {
                                 </div>
                             )}
                             {chatHistory.map((msg, i) => (
-                                <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                                <div key={i} className={`flex items-end gap-1 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                                    {msg.role === 'ai' && (
+                                      <CopyButton text={msg.text} label="Copy message" className="shrink-0 mb-0.5" />
+                                    )}
                                     <div className={`max-w-[85%] p-3 rounded-xl text-xs leading-relaxed ${msg.role === 'user' ? 'bg-blue-600 text-white rounded-br-none' : 'bg-slate-800 text-slate-200 border border-white/10 rounded-bl-none'}`}>
                                         {msg.text}
                                     </div>
+                                    {msg.role === 'user' && (
+                                      <CopyButton text={msg.text} label="Copy message" className="shrink-0 mb-0.5" />
+                                    )}
                                 </div>
                             ))}
                             {isChatting && (
