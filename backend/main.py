@@ -7,7 +7,7 @@ import hashlib
 import logging
 from fastapi import FastAPI, HTTPException, Request, WebSocket, WebSocketDisconnect
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from fastapi.middleware.cors import CORSMiddleware
 import google.generativeai as genai
 from google.api_core import exceptions as google_exceptions
@@ -236,7 +236,8 @@ class GraphRequest(BaseModel):
 
 class ChatRequest(BaseModel):
     message: str
-    context: str
+    graph: dict = Field(default_factory=dict)
+    context: str = ""
 
 class CodeRequest(BaseModel):
     prompt: str
@@ -428,9 +429,20 @@ async def chat_with_ai(request: Request, payload: ChatRequest):
     Raises:
         HTTPException: If generation fails.
     """
+    graph_context = json.dumps(payload.graph, indent=2, ensure_ascii=False) if payload.graph else payload.context
+    if not graph_context:
+        raise HTTPException(status_code=422, detail="CHAT_CONTEXT_MISSING: Provide the current diagram graph.")
+
     try:
         response_text = get_smart_response(
-            f"Context: {payload.context}\nUser: {payload.message}",
+            (
+                "You are VISUALAIZE's diagram analysis assistant. Answer the user's question using the "
+                "current diagram JSON as the source of truth. Reference specific nodes, edges, labels, "
+                "and relationships when useful. If the diagram does not contain enough information, say "
+                "what is missing and give a cautious recommendation.\n\n"
+                f"CURRENT DIAGRAM JSON:\n{graph_context}\n\n"
+                f"USER QUESTION:\n{payload.message}"
+            ),
             use_json=False
         )
         return {"reply": response_text}

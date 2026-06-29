@@ -77,6 +77,33 @@ def test_chat_returns_reply(mock_ai):
     data = response.json()
     assert data["reply"] == "This is a mock AI reply."
 
+@patch.object(main, "get_smart_response")
+def test_chat_passes_graph_context_to_ai(mock_ai):
+    """POST /chat should pass the current graph JSON into the AI prompt."""
+    mock_ai.return_value = "The API Gateway depends on the Load Balancer."
+
+    response = client.post(
+        "/chat",
+        json={
+            "message": "Is this architecture highly available?",
+            "graph": {
+                "title": "Highly Available Web App",
+                "nodes": [
+                    {"id": "1", "label": "Load Balancer"},
+                    {"id": "2", "label": "API Gateway"},
+                ],
+                "edges": [{"id": "e-1", "source": "1", "target": "2", "label": "routes"}],
+            },
+        },
+    )
+
+    assert response.status_code == 200
+    prompt = mock_ai.call_args.args[0]
+    assert "CURRENT DIAGRAM JSON" in prompt
+    assert "Load Balancer" in prompt
+    assert "API Gateway" in prompt
+    assert "highly available" in prompt
+
 def test_chat_missing_fields():
     """POST /chat without required fields should return 422."""
     response = client.post("/chat", json={"message": "hi"}) # Missing context
@@ -131,22 +158,24 @@ def test_generate_graph_uses_cache(mock_ai):
         except Exception:
             pass
 
-    # 2. Make first request - should hit mock_ai
-    response = client.post("/generate", json={"prompt": "cache test prompt"})
-    assert response.status_code == 200
-    assert mock_ai.call_count == 1
+    with patch("main.GENAI_KEY", "mock_key_for_testing"):
+        # 2. Make first request - should hit mock_ai
+        response = client.post("/generate", json={"prompt": "cache test prompt"})
+        assert response.status_code == 200
+        assert mock_ai.call_count == 1
 
-    # 3. Make second request - should hit cache (so mock_ai call count remains 1)
-    response2 = client.post("/generate", json={"prompt": "cache test prompt"})
-    assert response2.status_code == 200
-    assert mock_ai.call_count == 1
+        # 3. Make second request - should hit cache (so mock_ai call count remains 1)
+        response2 = client.post("/generate", json={"prompt": "cache test prompt"})
+        assert response2.status_code == 200
+        assert mock_ai.call_count == 1
 
 
 @patch.object(main, "get_smart_response")
 def test_generate_error_does_not_leak_detail(mock_ai):
     """Error responses must not expose raw exception messages to the client."""
     mock_ai.side_effect = RuntimeError("Internal connection string: redis://secret@host:6379")
-    response = client.post("/generate", json={"prompt": "trigger error"})
+    with patch("main.GENAI_KEY", "mock_key_for_testing"):
+        response = client.post("/generate", json={"prompt": "trigger error"})
     assert response.status_code == 500
     body = response.json()
     # The raw exception text must NOT appear in the response body
@@ -165,12 +194,12 @@ def test_chat_error_does_not_leak_detail(mock_ai):
     assert "Raw internal error" not in body.get("detail", "")
 
 
-def test_generate_no_api_key_returns_503():
-    """Missing GENAI_KEY must return 503, not 500."""
+def test_generate_no_api_key_returns_401():
+    """Missing GENAI_KEY must return an auth error, not 500."""
     original_key = main.GENAI_KEY
     try:
         main.GENAI_KEY = None
         response = client.post("/generate", json={"prompt": "test"})
-        assert response.status_code == 503
+        assert response.status_code == 401
     finally:
         main.GENAI_KEY = original_key

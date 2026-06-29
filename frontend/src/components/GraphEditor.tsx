@@ -10,7 +10,7 @@ import {
   Activity, BookOpen, PlayCircle, Layers, Code, Copy, Check, Zap,
   Globe, Mic, Download, ChevronDown, MessageSquare, Send, Paperclip,
   PanelRightClose, PanelRightOpen, AlertTriangle, ArrowRight, X, RefreshCw,
-  Maximize2, Minimize2, ZoomIn, ZoomOut, Maximize, Lock, Unlock, History,Hand, MousePointer2
+  Maximize2, Minimize2, ZoomIn, ZoomOut, Maximize, Lock, Unlock, History, Hand, MousePointer2, Trash2
 } from 'lucide-react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import ReactFlow, {
@@ -51,6 +51,23 @@ interface GraphData {
 interface codeObject {
   code_snippet: string;
   code_explanation: string;
+}
+
+interface DiagramChatContext {
+  title: string;
+  summary: string;
+  explanation: string;
+  nodes: {
+    id: string;
+    label: string;
+    position?: Node['position'];
+  }[];
+  edges: {
+    id: string;
+    source: string;
+    target: string;
+    label?: string;
+  }[];
 }
 
 interface SpeechRecognitionEvent extends Event {
@@ -568,8 +585,8 @@ function EditorContent({ onBack }: EditorProps) {
   const loadFromHistory = (diagram: SavedDiagram) => {
     setPrompt(diagram.prompt);
     setGraphData(diagram.data as any);
-    setNodes(diagram.data.nodes);
-    setEdges(diagram.data.edges);
+    setNodes(diagram.nodes);
+    setEdges(diagram.edges);
     setHistoryOpen(false);
     setIsSidebarOpen(true);
   };
@@ -632,18 +649,48 @@ function EditorContent({ onBack }: EditorProps) {
     } finally { setIsRegeneratingCode(false); }
   };
 
+  const buildDiagramChatContext = (): DiagramChatContext | null => {
+    if (!graphData) return null;
+
+    const currentNodes = getNodes();
+    const currentEdges = getEdges();
+
+    return {
+      title: graphData.title,
+      summary: graphData.summary,
+      explanation: graphData.explanation,
+      nodes: currentNodes.map((node) => ({
+        id: node.id,
+        label: String(node.data?.label ?? node.id),
+        position: node.position,
+      })),
+      edges: currentEdges.map((edge) => ({
+        id: edge.id,
+        source: edge.source,
+        target: edge.target,
+        label: typeof edge.label === 'string' ? edge.label : undefined,
+      })),
+    };
+  };
+
   const handleChatSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!chatInput.trim() || !graphData) return;
     const userMsg = chatInput;
+    const graph = buildDiagramChatContext();
+    if (!graph) return;
+
     setChatInput('');
     setChatHistory(prev => [...prev, { role: 'user', text: userMsg }]);
     setIsChatting(true);
     try {
         const res = await fetch(`${BACKEND_URL}/chat`, {
             method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ message: userMsg, context: `Title: ${graphData.title}. Explanation: ${graphData.explanation}` }),
+            body: JSON.stringify({ message: userMsg, graph }),
         });
+        if (!res.ok) {
+            throw new Error(`Chat request failed with ${res.status}`);
+        }
         const data = await res.json();
         setChatHistory(prev => [...prev, { role: 'ai', text: data.reply }]);
     } catch (err) {
