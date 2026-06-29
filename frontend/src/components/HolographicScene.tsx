@@ -69,7 +69,7 @@ const RotatingStars = () => {
 
   return (
     <group ref={ref}>
-      <Stars radius={100} depth={50} count={5000} factor={4} saturation={0} fade />
+      <Stars radius={100} depth={50} count={2000} factor={4} saturation={0} fade />
     </group>
   );
 };
@@ -78,7 +78,7 @@ const RotatingStars = () => {
 const HolographicScene = () => {
   return (
     <div className="absolute inset-0 bg-black pointer-events-none">
-      <Canvas camera={{ position: [0, 0, 8], fov: 45 }}>
+      <Canvas dpr={[1, 1.5]} camera={{ position: [0, 0, 8], fov: 45 }}>
         
         {/* Lights */}
         <ambientLight intensity={1} />
@@ -99,7 +99,7 @@ const HolographicScene = () => {
         <RotatingStars />
         
         {/* Shadow at the center */}
-        <ContactShadows position={[0, -4.5, 0]} opacity={0.6} scale={10} blur={3} far={10} />
+        <ContactShadows position={[0, -4.5, 0]} opacity={0.6} scale={10} blur={2} resolution={256} far={10} />
 
       </Canvas>
     </div>

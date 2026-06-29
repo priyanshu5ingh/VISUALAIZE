@@ -1,53 +1,69 @@
 ---
-name: Bug Report
-about: Report a bug to help us improve VisualAIze Pro
+name: 🐛 Bug Report
+about: Report a bug or unexpected behavior in VISUALAIZE
 title: "[BUG] <short description>"
-labels: bug
-assignees: ''
+labels: ["bug", "needs-triage"]
+assignees: ""
 ---
 
-## Bug Description
+## 🐛 Bug Description
 
-> A clear and concise description of what the bug is.
+ A clear and concise description of the bug. 
 
-## Steps to Reproduce
-
-> Provide step-by-step instructions to reproduce the issue.
+## 🔁 Steps to Reproduce
 
 1. Go to '...'
-2. Click on '...'
-3. Enter '...'
+2. Enter prompt '...'
+3. Click on '...'
 4. See error
 
-## Expected Behavior
+## ✅ Expected Behavior
 
-> What did you expect to happen?
+ Describe what should have happened. e.g. "The diagram should render a valid DFA graph with labeled nodes and directed edges." 
 
-## Actual Behavior
+## ❌ Actual Behavior
 
-> What actually happened instead?
+ Describe what actually happened instead. e.g. "The canvas stays blank and the browser console shows a 500 error from the backend." 
 
-## Screenshots / Screen Recording
+## 🖼️ Screenshots / Screen Recording
 
-> If applicable, add screenshots or a screen recording to help explain the problem. Drag and drop images directly into this text box.
+Drag and drop screenshots or a recording here, if available. 
 
-## Environment
+## 🌐 Environment
 
-| Field | Details |
-|-------|---------|
-| OS | e.g., Windows 11, macOS 14, Ubuntu 22.04 |
-| Browser | e.g., Chrome 124, Firefox 125 |
-| Node.js version | e.g., 18.20.0 |
-| Python version | e.g., 3.11.0 |
+| Field             | Details                    |
+|-------------------|----------------------------|
+| OS                | e.g. Windows 11 / macOS 14 |
+| Browser           | e.g. Chrome 124, Firefox   |
+| Node.js Version   | e.g. 20.x                  |
+| Python Version    | e.g. 3.11                  |
+| Frontend URL      | e.g. localhost:3000 / Vercel |
+| Backend URL       | e.g. localhost:8000         |
 
-## Additional Context
+## 📋 Diagram / Prompt Used
 
-> Add any other context about the problem here (e.g., error messages from the console, relevant logs).
+ If the bug involves diagram generation, share the prompt you used. 
 
 ```
-Paste any error messages or logs here
+e.g. "DFA that accepts binary strings ending in 101"
 ```
 
-## Possible Fix (Optional)
+## 🪵 Console / Terminal Logs
 
-> If you have an idea of what might be causing the bug or how to fix it, share it here.
+ Paste any relevant browser console errors or backend terminal output here.
+
+```
+Paste logs here
+```
+
+## 📌 Additional Context
+
+Any other information that might help identify the issue (e.g. does it happen with specific diagram types? only on mobile? only after a certain action?). 
+
+## 🔧 Possible Fix (Optional)
+
+<!-- If you have an idea of what might be causing the bug or how to fix it, share it here. e.g. "The Gemini API response may not be getting parsed correctly when the prompt contains special characters." -->
+
+---
+
+> **Note for GSSOC contributors:** If you'd like to work on fixing this bug, comment `assign` below and a maintainer will assign it to you.

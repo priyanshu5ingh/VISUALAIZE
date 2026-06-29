@@ -1,37 +1,65 @@
 ---
-name: Feature Request
-about: Suggest a new idea or enhancement for VisualAIze Pro
+name: ✨ Feature Request
+about: Suggest a new feature or improvement for VISUALAIZE
 title: "[FEAT] <short description>"
-labels: enhancement
-assignees: ''
+labels: ["enhancement", "needs-triage"]
+assignees: ""
 ---
 
-## Problem Statement
+## ✨ Feature Summary
 
-> Is your feature request related to a problem? Please describe it clearly.
-> Example: "I find it frustrating when I can't export my diagram as a PDF..."
+> A short, clear summary of the feature you're proposing.
 
-## Proposed Solution
+## 🧩 Problem / Motivation
 
-> Describe the feature or enhancement you would like to see added.
-> Be as specific as possible — include mockups, diagrams, or examples if available.
+> What problem does this feature solve? What's the current limitation or pain point?
+> e.g. "Currently, there's no way to save diagrams to the cloud, which means work is lost on refresh."
 
-## Alternative Solutions Considered
+## 💡 Proposed Solution
 
-> Have you considered any alternative approaches or workarounds? If so, describe them here.
+> Describe your idea in detail. How should it work? What should the user experience be?
 
-## Why This Would Be Valuable
+## 🗂️ Affected Area
 
-> Explain how this feature would benefit contributors or users of VisualAIze Pro.
-> Who would use this feature and how often?
+<!-- Check all that apply -->
 
-## Additional Context
+- [ ] Frontend – UI / Graph Editor
+- [ ] Frontend – 3D Scene / Landing Page
+- [ ] Backend – FastAPI / Gemini Integration
+- [ ] Diagram Generation (AI prompt handling)
+- [ ] Export / Download
+- [ ] Performance / Optimization
+- [ ] Documentation
+- [ ] Other: 
 
-> Add any other context, screenshots, links to similar implementations, or references that might help the maintainers understand your request.
+## 🎨 UI / UX Mockup (Optional)
 
-## Are you willing to work on this?
+> Attach a sketch, wireframe, or description of how the UI should look/behave.
 
-- [ ] Yes, I would like to implement this feature and submit a PR.
-- [ ] No, I am just suggesting the idea.
+## 🔄 Alternatives Considered
 
-> **GSSOC participants**: If you'd like to work on this as part of GirlScript Summer of Code, mention **"GSSOC"** in a comment below after the issue is labeled!
+> Have you considered any other approaches? Why is your proposed solution better?
+
+## 📊 Example Use Case
+
+> Show a real-world scenario where this feature would be used.
+
+```
+e.g. "A user wants to share their generated diagram via a link.
+      They click 'Share', a unique URL is copied to clipboard,
+      and anyone with the link can view (but not edit) the diagram."
+```
+
+## 📌 Additional Context
+
+> Add any links, references, or related issues that support this request.
+
+## 🏁 Checklist
+
+- [ ] I have searched existing issues to make sure this is not a duplicate.
+- [ ] This feature aligns with the VISUALAIZE roadmap or vision.
+- [ ] I am willing to contribute to implementing this feature.
+
+---
+
+> **Note for GSSOC contributors:** If you'd like to work on this feature, comment `assign` below and a maintainer will assign it to you.

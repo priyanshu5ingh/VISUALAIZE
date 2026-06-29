@@ -1,37 +1,72 @@
-import React from "react";
+"use client";
+
+import { useState } from "react";
 
 const ProductDemo = () => {
-  return (
-    <div className="relative w-full aspect-video bg-[#0a0a0a] rounded-xl overflow-hidden border border-white/10 shadow-2xl group">
-      {/* 1. The Video Player */}
-      <video
-        className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity duration-500"
-        autoPlay
-        muted
-        loop
-        playsInline
-      >
-        {/* Make sure the file name matches exactly what you saved */}
-        <source src="/assets/demo-video.mp4" type="video/mp4" />
-      </video>
+  const [sliderPosition, setSliderPosition] = useState(50);
 
-      {/* 2. Overlay: Top Bar Decoration */}
-      <div className="absolute top-0 left-0 w-full h-8 bg-gradient-to-b from-black/80 to-transparent flex items-center px-4 gap-2">
-        <div className="w-2 h-2 rounded-full bg-red-500/50" />
-        <div className="w-2 h-2 rounded-full bg-yellow-500/50" />
-        <div className="w-2 h-2 rounded-full bg-green-500/50" />
+  return (
+    <div className="relative w-full aspect-video overflow-hidden rounded-xl border border-white/10 bg-[#0a0a0a] shadow-2xl">
+
+      <img
+        src="/assets/before.jpg"
+        alt="Before"
+        className="absolute inset-0 h-full w-full object-cover"
+      />
+
+      <div
+        className="absolute inset-0 overflow-hidden"
+        style={{
+          width: `${sliderPosition}%`,
+        }}
+      >
+        <img
+          src="/assets/after.jpg"
+          alt="After"
+          className="absolute inset-0 h-full w-full object-cover max-w-none"
+        />
       </div>
 
-      {/* 3. Overlay: "Live Preview" Badge */}
-      <div className="absolute bottom-4 right-4 px-3 py-1 bg-black/60 backdrop-blur-md border border-white/10 rounded-full flex items-center gap-2">
-        <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
-        <span className="text-[10px] font-bold tracking-widest text-white/80 uppercase">
-          Live Demo
+      <div
+        className="absolute top-0 bottom-0 z-20 w-1 bg-white"
+        style={{
+          left: `${sliderPosition}%`,
+        }}
+      >
+        <div className="absolute top-1/2 left-1/2 flex h-10 w-10 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-white bg-black/70 text-white shadow-lg">
+          ↔
+        </div>
+      </div>
+
+      <input
+        type="range"
+        aria-label="Before and after image comparison slider"
+        min="0"
+        max="100"
+        value={sliderPosition}
+        onChange={(e) =>
+          setSliderPosition(Number(e.target.value))
+        }
+       className="absolute bottom-6 left-1/2 z-30 w-2/3 -translate-x-1/2 cursor-ew-resize accent-cyan-400"
+      />
+
+      <div className="absolute left-4 top-4 z-30 rounded-md bg-black/60 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-white backdrop-blur-sm">
+        Before
+      </div>
+
+      <div className="absolute right-4 top-4 z-30 rounded-md bg-black/60 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-white backdrop-blur-sm">
+        After
+      </div>
+
+      <div className="absolute bottom-4 right-4 z-30 flex items-center gap-2 rounded-full border border-white/10 bg-black/60 px-3 py-1 backdrop-blur-md">
+        <div className="h-2 w-2 animate-pulse rounded-full bg-green-400" />
+
+        <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/80">
+          Interactive Compare
         </span>
       </div>
-      
-      {/* 4. Glow Effect */}
-      <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl blur opacity-20 group-hover:opacity-40 transition duration-1000 -z-10"></div>
+
+      <div className="absolute -inset-1 -z-10 rounded-xl bg-gradient-to-r from-cyan-500 to-purple-600 opacity-20 blur-xl" />
     </div>
   );
 };

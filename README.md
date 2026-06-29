@@ -34,25 +34,33 @@
   </tr>
   <tr>
     <td align="center" width="50%">
-      <h3>🎭 3D Holographic Interface</h3>
-      <p>Immersive 3D background with animated core and cinematic lighting effects</p>
+      <h3>⚡ Viewport-Based Rendering</h3>
+      <p>Only renders nodes and edges visible in the current viewport, improving performance for large graphs and ensuring smooth interaction even with thousands of elements</p>
     </td>
     <td align="center" width="50%">
-      <h3>📊 Multiple Diagram Types</h3>
-      <p>DFA, Neural Networks, Flowcharts, Mind Maps, System Architectures & More</p>
+      <h3>🎭 3D Holographic Interface</h3>
+      <p>Immersive 3D background with animated core and cinematic lighting effects</p>
     </td>
   </tr>
   <tr>
     <td align="center" width="50%">
+      <h3>📊 Multiple Diagram Types</h3>
+      <p>DFA, Neural Networks, Flowcharts, Mind Maps, System Architectures & More</p>
+    </td>
+    <td align="center" width="50%">
       <h3>🎬 Smooth Animations</h3>
       <p>Frame-motion powered transitions and holographic loading effects</p>
     </td>
+  </tr>
+  <tr>
     <td align="center" width="50%">
       <h3>💾 Export Options</h3>
       <p>Download your diagrams as PNG images for presentations and documentation</p>
     </td>
   </tr>
 </table>
+
+---
 
 ---
 
@@ -120,17 +128,23 @@ VisualAIze/
 └── backend/                           # Python Backend
     ├── test_key.py                   # Gemini API Key Validation
     └── venv/                         # Virtual Environment
-
-  ---
-
-  ## 🖼️ Diagrams
-
-  Visual diagrams for the architecture and data flow are available in the `docs/` folder.
-
-  ![Architecture Diagram](docs/architecture.svg)
-
-  ![Data Flow](docs/data-flow.svg)
 ```
+
+---
+
+## 🖼️ Diagrams
+
+Visual diagrams for the architecture and data flow are available in the `docs/` folder.
+
+![Architecture Diagram](docs/architecture.svg)
+
+![Data Flow](docs/data-flow.svg)
+
+### Request flow: Frontend, Backend, Redis & Gemini
+
+![Architecture overview with Redis cache](docs/architecture-overview.svg)
+
+This diagram shows how a request travels from the **Next.js frontend** to the **FastAPI backend**, which checks **Redis** for a cached diagram before calling the **Gemini API** to generate new graph data — caching the result for future requests.
 
 ---
 
@@ -543,7 +557,7 @@ Thanks to all the amazing people who contribute to **VISUALAIZE** 🚀
 
 ## 📄 License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ---
 
