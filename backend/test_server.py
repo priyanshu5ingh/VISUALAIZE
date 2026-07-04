@@ -258,3 +258,39 @@ def test_internal_auth_returns_503_when_not_configured():
         assert response.status_code == 503
     finally:
         main.INTERNAL_API_SECRET = original_secret
+
+
+# --- RATE LIMITING REGRESSION TESTS ---
+# Issue #250: Verify that rate limiting on POST /generate works correctly.
+# Regression: https://github.com/priyanshu5ingh/VISUALAIZE/issues/250
+
+@patch.object(main, "get_smart_response")
+def test_rate_limiting_enforced_on_generate(mock_ai):
+    """POST /generate should be rate limited to 10 requests per minute.
+
+    Regression test for issue #250. Verifies that the @limiter.limit("10/minute")
+    decorator on POST /generate actually rejects traffic after the quota is exceeded.
+    """
+    mock_ai.return_value = json.dumps(MOCK_GRAPH)
+
+    # Temporarily enable the limiter for this test (it's disabled globally for test isolation)
+    original_enabled = app.state.limiter.enabled
+    try:
+        app.state.limiter.enabled = True
+
+        with patch("main.GENAI_KEY", "mock_key_for_testing"):
+            # Make 10 successful requests (within limit)
+            for i in range(10):
+                response = client.post("/generate", json={"prompt": f"test {i}"})
+                assert response.status_code == 200, f"Request {i+1} should succeed (within limit)"
+
+            # 11th request should be rate-limited (429 Too Many Requests)
+            response = client.post("/generate", json={"prompt": "test 11"})
+            assert response.status_code == 429, \
+                f"Request 11 should be rate-limited (429), got {response.status_code}"
+            body = response.json()
+            error_msg = body.get("error", body.get("detail", "")).lower()
+            assert "exceed" in error_msg or "rate" in error_msg, \
+                f"Rate limit error message should mention rate/limit, got: {body}"
+    finally:
+        app.state.limiter.enabled = original_enabled
