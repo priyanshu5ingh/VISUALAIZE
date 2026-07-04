@@ -8,7 +8,7 @@ import hmac
 import logging
 from fastapi import Depends, FastAPI, Header, HTTPException, Request, WebSocket, WebSocketDisconnect
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, ValidationError, field_validator
 from fastapi.middleware.cors import CORSMiddleware
 import google.generativeai as genai
 from google.api_core import exceptions as google_exceptions
@@ -285,6 +285,35 @@ class CodeRequest(BaseModel):
     prompt: str
     language: str
 
+
+# --- RESPONSE VALIDATION MODELS ---
+class GraphNode(BaseModel):
+    """A single node in the graph."""
+    id: str
+    label: str
+
+class GraphEdge(BaseModel):
+    """A single edge (connection) in the graph."""
+    source: str
+    target: str
+    label: str = ""
+
+class GraphResponse(BaseModel):
+    """Validated response structure from the Gemini AI graph generation.
+
+    All fields are required. Missing or invalid fields will raise ValidationError,
+    preventing malformed responses from reaching the frontend.
+    """
+    title: str = Field(..., min_length=1, description="Short title for the graph")
+    summary: str = Field(..., min_length=1, description="1-sentence summary")
+    explanation: str = Field(..., min_length=1, description="Brief explanation")
+    execution_trace: str = Field(..., min_length=1, description="Step-by-step trace")
+    code_snippet: str = Field(..., min_length=1, description="Code representation")
+    nodes: list[GraphNode] = Field(..., min_length=1, description="Graph nodes (must have at least one)")
+    edges: list[GraphEdge] = Field(default_factory=list, description="Graph edges (optional, defaults to empty)")
+    example_input: str = ""
+    code_explanation: str = ""
+
 def get_smart_response(prompt_text: str, use_json: bool = False) -> str:
     """
     Generates a response from the LLM based on the prompt.
@@ -436,12 +465,24 @@ async def generate_graph(request: Request, payload: GraphRequest):
             use_json=True
         )
         result_json = parse_json_response(response_text)
+
+        # Validate the response structure before returning to frontend (prevents crashes)
         try:
-            cache.setex(cache_key, 86400, json.dumps(result_json))
+            validated_response = GraphResponse(**result_json)
+            result_dict = validated_response.model_dump()
+        except ValidationError as ve:
+            logger.error("Invalid Gemini response structure: %s", ve)
+            raise HTTPException(
+                status_code=400,
+                detail="GEMINI_BAD_REQUEST: The AI response was missing required fields (e.g., nodes, edges, title). This usually means the model did not follow the schema correctly."
+            )
+
+        try:
+            cache.setex(cache_key, 86400, json.dumps(result_dict))
             logger.info("💾 Cached new graph layout.")
         except Exception:
             logger.warning("⚠️ Cache write failed — response will not be cached.")
-        return result_json
+        return result_dict
     except HTTPException:
         raise
     except json.JSONDecodeError as je:

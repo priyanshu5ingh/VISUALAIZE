@@ -264,6 +264,140 @@ def test_internal_auth_returns_503_when_not_configured():
 # Issue #250: Verify that rate limiting on POST /generate works correctly.
 # Regression: https://github.com/priyanshu5ingh/VISUALAIZE/issues/250
 
+# --- RESPONSE VALIDATION TESTS ---
+# Issue #251: Unvalidated Gemini response crashes ReactFlow
+
+@patch.object(main, "get_smart_response")
+def test_generate_graph_validates_response_structure(mock_ai):
+    """POST /generate should validate that the Gemini response has all required fields.
+
+    Regression test for issue #251. Verifies that missing fields (nodes, edges,
+    title, etc.) are caught before returning to frontend, preventing crashes
+    when the frontend tries to render undefined data structures.
+    """
+    from main import cache, get_cache_key
+
+    # Clear cache to avoid stale test data
+    cache._cache.clear() if hasattr(cache, "_cache") else None
+
+    # Valid response with all required fields
+    valid_response = json.dumps({
+        "title": "Test Graph",
+        "summary": "A test summary",
+        "explanation": "Test explanation",
+        "execution_trace": "Step 1 -> Step 2",
+        "code_snippet": "print('hello')",
+        "nodes": [{"id": "1", "label": "Node 1"}],
+        "edges": [],
+    })
+    mock_ai.return_value = valid_response
+
+    with patch("main.GENAI_KEY", "mock_key_for_testing"):
+        response = client.post("/generate", json={"prompt": "test prompt"})
+        assert response.status_code == 200
+        data = response.json()
+        assert data["title"] == "Test Graph"
+        assert "nodes" in data
+        assert "edges" in data
+
+
+@patch.object(main, "get_smart_response")
+def test_generate_graph_rejects_missing_nodes(mock_ai):
+    """POST /generate should reject responses with missing 'nodes' field.
+
+    If Gemini returns a response without nodes, it should be caught and
+    rejected with 400 Bad Request rather than being returned to the
+    frontend (which would crash when trying to access data.nodes).
+    """
+    from main import cache
+
+    # Clear cache
+    cache._cache.clear() if hasattr(cache, "_cache") else None
+
+    # Response missing 'nodes' field
+    invalid_response = json.dumps({
+        "title": "Test Graph",
+        "summary": "A test summary",
+        "explanation": "Test explanation",
+        "execution_trace": "Step 1 -> Step 2",
+        "code_snippet": "print('hello')",
+        # Missing: "nodes"
+        "edges": [],
+    })
+    mock_ai.return_value = invalid_response
+
+    with patch("main.GENAI_KEY", "mock_key_for_testing"):
+        response = client.post("/generate", json={"prompt": "test missing_nodes"})
+        assert response.status_code == 400, f"Expected 400, got {response.status_code}: {response.json()}"
+        body = response.json()
+        assert "required" in body.get("detail", "").lower() or \
+               "missing" in body.get("detail", "").lower() or \
+               "field" in body.get("detail", "").lower(), \
+            f"Error should mention missing/required field, got: {body}"
+
+
+@patch.object(main, "get_smart_response")
+def test_generate_graph_rejects_empty_nodes(mock_ai):
+    """POST /generate should reject responses with empty 'nodes' array.
+
+    The nodes list must have at least one node. An empty nodes list
+    would crash the frontend's ReactFlow component.
+    """
+    from main import cache
+
+    # Clear cache
+    cache._cache.clear() if hasattr(cache, "_cache") else None
+
+    # Response with empty nodes list
+    invalid_response = json.dumps({
+        "title": "Test Graph",
+        "summary": "A test summary",
+        "explanation": "Test explanation",
+        "execution_trace": "Step 1 -> Step 2",
+        "code_snippet": "print('hello')",
+        "nodes": [],  # Empty!
+        "edges": [],
+    })
+    mock_ai.return_value = invalid_response
+
+    with patch("main.GENAI_KEY", "mock_key_for_testing"):
+        response = client.post("/generate", json={"prompt": "test empty_nodes"})
+        assert response.status_code == 400, f"Expected 400, got {response.status_code}: {response.json()}"
+        body = response.json()
+        assert "node" in body.get("detail", "").lower() or \
+               "empty" in body.get("detail", "").lower(), \
+            f"Error should mention empty nodes, got: {body}"
+
+
+@patch.object(main, "get_smart_response")
+def test_generate_graph_rejects_invalid_node_structure(mock_ai):
+    """POST /generate should reject nodes with invalid structure.
+
+    Each node must have 'id' and 'label' fields. Missing fields
+    should be caught and rejected.
+    """
+    from main import cache
+
+    # Clear cache
+    cache._cache.clear() if hasattr(cache, "_cache") else None
+
+    # Node missing 'label' field
+    invalid_response = json.dumps({
+        "title": "Test Graph",
+        "summary": "A test summary",
+        "explanation": "Test explanation",
+        "execution_trace": "Step 1 -> Step 2",
+        "code_snippet": "print('hello')",
+        "nodes": [{"id": "1"}],  # Missing 'label'
+        "edges": [],
+    })
+    mock_ai.return_value = invalid_response
+
+    with patch("main.GENAI_KEY", "mock_key_for_testing"):
+        response = client.post("/generate", json={"prompt": "test invalid_node"})
+        assert response.status_code == 400, f"Expected 400, got {response.status_code}: {response.json()}"
+
+
 @patch.object(main, "get_smart_response")
 def test_rate_limiting_enforced_on_generate(mock_ai):
     """POST /generate should be rate limited to 10 requests per minute.
