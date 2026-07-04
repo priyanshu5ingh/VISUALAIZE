@@ -349,7 +349,7 @@ function EditorContent({ onBack }: EditorProps) {
   }, []);
 
   const codeCache = useRef(new Map<string, codeObject>());
-  const reactFlowWrapper = useRef(null);
+  const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { getNodes, getEdges, fitView, zoomIn, zoomOut } = useReactFlow();
 
@@ -690,8 +690,19 @@ function EditorContent({ onBack }: EditorProps) {
 
   const handleExport = () => {
     if (reactFlowWrapper.current === null) return;
-    toPng(reactFlowWrapper.current, { backgroundColor: '#020617' }).then((dataUrl) => {
-        const link = document.createElement('a'); link.download = 'visualaize-graph.png'; link.href = dataUrl; link.click();
+    // Target the actual ReactFlow canvas (.react-flow) instead of the entire container,
+    // so only the graph is captured, not the sidebar, buttons, or other UI elements.
+    // This fixes issue #252 where the full viewport was being exported.
+    const canvas = reactFlowWrapper.current.querySelector('.react-flow');
+    if (!canvas) {
+      alert("Could not find ReactFlow canvas. Cannot export.");
+      return;
+    }
+    toPng(canvas as HTMLElement, { backgroundColor: '#020617' }).then((dataUrl) => {
+        const link = document.createElement('a');
+        link.download = 'visualaize-graph.png';
+        link.href = dataUrl;
+        link.click();
     });
   };
 
