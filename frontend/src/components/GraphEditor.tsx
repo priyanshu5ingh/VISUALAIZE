@@ -11,7 +11,7 @@ import {
   Globe, Mic, Download, ChevronDown, MessageSquare, Send, Paperclip,
   PanelRightClose, PanelRightOpen, AlertTriangle, ArrowRight, X, RefreshCw,
   Maximize2, Minimize2, ZoomIn, ZoomOut, Maximize, Lock, Unlock,
-  History, Eye, EyeOff, HelpCircle, Hand, MousePointer2
+  History, Eye, EyeOff, HelpCircle, Hand, MousePointer2,Trash2
 } from "lucide-react";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import ReactFlow, {
@@ -1022,24 +1022,26 @@ function EditorContent({ onBack }: EditorProps) {
                       <Lock size={14} />
                     </ControlButton>
                     <ControlButton
-                      onClick={() => setShowEdgeLabels(prev => !prev)}
-                      title="Toggle Edge Labels"
-                      aria-label="Toggle edge labels"
-                    >
-                      {showEdgeLabels ? (
-                        <Eye size={14} />
-                      ) : (
-                        <EyeOff size={14} />
-                      )}
-                    {/* 🗑️ CLEAR ALL BUTTON - CONTROLS PANEL */}
-                    <ControlButton
-                      onClick={handleClearAll}
-                      title="Clear All"
-                      aria-label="Clear all nodes and edges"
-                      className="hover:bg-red-500/20 transition-colors"
-                    >
-                      <Trash2 size={14} className="text-red-400 hover:text-red-300" />
-                    </ControlButton>
+  onClick={() => setShowEdgeLabels(prev => !prev)}
+  title="Toggle Edge Labels"
+  aria-label="Toggle edge labels"
+>
+  {showEdgeLabels ? (
+    <Eye size={14} />
+  ) : (
+    <EyeOff size={14} />
+  )}
+</ControlButton>
+
+<ControlButton
+  onClick={handleClearAll}
+  title="Clear All"
+  aria-label="Clear all nodes and edges"
+  className="hover:bg-red-500/20 transition-colors"
+>
+  <Trash2 size={14} className="text-red-400 hover:text-red-300" />
+</ControlButton>
+            
                   </Controls>
                 )}
 
