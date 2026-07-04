@@ -72,6 +72,9 @@ interface WindowWithSpeech extends Window {
 }
 
 const BACKEND_URL = "https://visualaize-backend.onrender.com";
+// Shared secret sent with requests to protected backend endpoints (e.g. /generate).
+// Must match INTERNAL_API_SECRET configured on the backend.
+const INTERNAL_API_SECRET = process.env.NEXT_PUBLIC_INTERNAL_SECRET ?? "";
 
 const glassControlsStyle = `
   .react-flow__panel .react-flow__controls {
@@ -433,7 +436,10 @@ function EditorContent({ onBack }: EditorProps) {
     try {
       const res = await fetch(`${BACKEND_URL}/generate`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Internal-Secret': INTERNAL_API_SECRET,
+        },
         body: JSON.stringify({ prompt: text }),
       });
 
