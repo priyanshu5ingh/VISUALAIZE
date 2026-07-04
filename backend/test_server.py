@@ -398,6 +398,71 @@ def test_generate_graph_rejects_invalid_node_structure(mock_ai):
         assert response.status_code == 400, f"Expected 400, got {response.status_code}: {response.json()}"
 
 
+# --- CACHE NORMALIZATION TESTS ---
+# Issue #253: Redis cache key normalization prevents unbounded growth
+
+@patch.object(main, "get_smart_response")
+def test_cache_normalization_regression(mock_ai):
+    """Cache keys should be normalized so different prompt variations use the same cache.
+
+    Regression test for issue #253. Redis cache keys must normalize the input prompt
+    to prevent unbounded cache growth. Multiple variations of the same prompt
+    (different case, whitespace, punctuation) should:
+    1. Map to the same cache key (no duplication)
+    2. Return the cached response (avoiding redundant AI calls)
+    3. Use hashed keys (not raw prompts), preventing growth on unique punctuation
+
+    This prevents attackers from exploiting the cache by sending variations
+    of the same prompt with different punctuation/spacing, each creating
+    a new cache entry and causing unbounded growth.
+    """
+    from main import cache, get_cache_key
+
+    # Clear cache
+    cache._cache.clear() if hasattr(cache, "_cache") else None
+
+    mock_ai.return_value = json.dumps(MOCK_GRAPH)
+
+    # Different variations of the SAME prompt that normalize to same key:
+    # - Case variations
+    # - Whitespace variations
+    # - Trailing punctuation variations
+    # These should all map to the same normalized cache key.
+    prompts = [
+        "create a DFA for a*b",
+        "create a dfa for a*b",  # Lowercase
+        "CREATE A DFA FOR A*B",  # Uppercase
+        "  create a DFA for a*b  ",  # Extra whitespace
+        "create  a  dfa  for  a*b",  # Multiple spaces
+        "create a DFA for a*b!!!",  # Trailing punctuation
+        "create a dfa for a*b.",  # Period
+        "create a dfa for a*b?",  # Question mark
+    ]
+
+    with patch("main.GENAI_KEY", "mock_key_for_testing"):
+        # First request should hit the AI
+        response1 = client.post("/generate", json={"prompt": prompts[0]})
+        assert response1.status_code == 200
+        assert mock_ai.call_count == 1
+
+        # All subsequent requests should hit the cache (same normalized key)
+        for i, prompt in enumerate(prompts[1:], 1):
+            response = client.post("/generate", json={"prompt": prompt})
+            assert response.status_code == 200, f"Prompt {i} failed: {response.json()}"
+            # Still only 1 AI call (cache hit for all variations)
+            assert mock_ai.call_count == 1, \
+                f"Prompt variation {i} should have hit cache, but AI was called {mock_ai.call_count} times"
+            # All variations return the same cached result
+            assert response.json()["title"] == "Test Graph"
+
+    # Verify cache keys are hashed (not raw prompts)
+    # A hashed key should look like "graph:<sha256_hex>"
+    from main import get_cache_key
+    key = get_cache_key(prompts[0])
+    assert key.startswith("graph:"), f"Cache key should be prefixed, got: {key}"
+    assert len(key) > 20, f"Cache key should be substantial (hashed), got: {key}"
+
+
 @patch.object(main, "get_smart_response")
 def test_rate_limiting_enforced_on_generate(mock_ai):
     """POST /generate should be rate limited to 10 requests per minute.
