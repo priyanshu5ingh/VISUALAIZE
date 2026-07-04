@@ -10,7 +10,8 @@ import {
   Activity, BookOpen, PlayCircle, Layers, Code, Copy, Check, Zap,
   Globe, Mic, Download, ChevronDown, MessageSquare, Send, Paperclip,
   PanelRightClose, PanelRightOpen, AlertTriangle, ArrowRight, X, RefreshCw,
-  Maximize2, Minimize2, ZoomIn, ZoomOut, Maximize, Lock, Unlock, History, Hand, MousePointer2, Trash2
+  Maximize2, Minimize2, ZoomIn, ZoomOut, Maximize, Lock, Unlock, History,
+  Eye, EyeOff, HelpCircle, Hand, MousePointer2, Trash2
 } from 'lucide-react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import ReactFlow, {
