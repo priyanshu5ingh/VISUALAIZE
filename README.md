@@ -590,3 +590,4 @@ cd frontend && npm install && npm run dev
   Made with 🚀 by developers, for developers
   
 </div>
+# TODO: 🔒 [feature]: persistent local user settings (#164)
