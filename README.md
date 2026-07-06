@@ -590,3 +590,4 @@ cd frontend && npm install && npm run dev
   Made with 🚀 by developers, for developers
   
 </div>
+# TODO: 💬 [ui]: add hover tooltips to icon-only buttons (#51)
