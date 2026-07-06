@@ -10,9 +10,8 @@ import {
   Activity, BookOpen, PlayCircle, Layers, Code, Copy, Check, Zap,
   Globe, Mic, Download, ChevronDown, MessageSquare, Send, Paperclip,
   PanelRightClose, PanelRightOpen, AlertTriangle, ArrowRight, X, RefreshCw,
-  Maximize2, Minimize2, ZoomIn, ZoomOut, Maximize, Lock, Unlock,
-  History, Eye, EyeOff, HelpCircle, Hand, MousePointer2,Trash2
-} from "lucide-react";
+  Maximize2, Minimize2, ZoomIn, ZoomOut, Maximize, Lock, Unlock, History, Hand, MousePointer2, Trash2
+} from 'lucide-react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import ReactFlow, {
   applyEdgeChanges, applyNodeChanges,
@@ -296,6 +295,7 @@ function EditorContent({ onBack }: EditorProps) {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [savedHistory, setSavedHistory] = useState<SavedDiagram[]>([]);
+  const [selectedNode, setSelectedNode] = useState<Node | null>(null);
   const [contextMenu, setContextMenu] = useState<{
     visible: boolean;
     x: number;
@@ -319,6 +319,13 @@ function EditorContent({ onBack }: EditorProps) {
     },
     []
   );
+
+ const handleNodeClick = useCallback(
+  (_: React.MouseEvent, node: Node) => {
+    setSelectedNode(node);
+  },
+  []
+);
 
   const handleColorSelect = useCallback((color: string) => {
     setNodes((nds) =>
@@ -906,7 +913,7 @@ function EditorContent({ onBack }: EditorProps) {
                 <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"/> ONLINE
              </div>
 
-             {graphData && (
+             {(graphData || selectedNode) && (
                  <button
                     onClick={() => setIsSidebarOpen(!isSidebarOpen)}
                     aria-label={isSidebarOpen ? 'Close analysis panel' : 'Open analysis panel'}
@@ -966,6 +973,7 @@ function EditorContent({ onBack }: EditorProps) {
               panOnDrag={panOnDrag}
               selectionOnDrag={!panOnDrag}
               selectionMode={SelectionMode.Partial}
+              onNodeClick={handleNodeClick}
             >
                 <Background
                     color="#94a3b8"
@@ -1118,10 +1126,10 @@ function EditorContent({ onBack }: EditorProps) {
         />
       ))}
 
-      {contextMenu.visible && (
-        <div
-          className="fixed z-[9999] bg-slate-900/95 backdrop-blur-xl border border-white/10 rounded-xl p-2 shadow-2xl animate-in fade-in zoom-in-95 duration-100"
-          style={{ left: contextMenu.x, top: contextMenu.y }}
+    {contextMenu.visible && (
+      <div
+        className="fixed z-[9999] bg-slate-900/95 backdrop-blur-xl border border-white/10 rounded-xl p-2 shadow-2xl animate-in fade-in zoom-in-95 duration-100"
+        style={{ left: contextMenu.x, top: contextMenu.y }}
         >
           <p className="text-[10px] uppercase tracking-widest text-slate-500 font-bold px-2 py-1.5">Node Color</p>
           <div className="flex gap-1.5 p-1">
@@ -1145,6 +1153,8 @@ function EditorContent({ onBack }: EditorProps) {
         </div>
       )}
 
+      
+
       {/* RIGHT SIDEBAR */}
       {!isFullscreen && (
       <div
@@ -1156,7 +1166,7 @@ function EditorContent({ onBack }: EditorProps) {
             <div className="p-6 border-b border-white/10 bg-slate-900/40 flex justify-between items-start min-w-[450px]">
                 <div>
                    <div className="flex items-center gap-2 mb-2 text-xs font-bold tracking-widest text-blue-500 uppercase"><Layers size={12} /> Analysis Complete</div>
-                   <h2 className="text-xl font-bold text-white leading-tight">{graphData.title}</h2>
+                   <h2 className="text-xl font-bold text-white leading-tight">{selectedNode ? "Node Properties" : graphData?.title}</h2>
                 </div>
                 <button onClick={handleExport} className="focus-ring p-2 text-slate-400 hover:text-white hover:bg-white/10 rounded-lg transition-colors" title="Export as PNG" aria-label="Export graph as PNG">
                     <Download size={18} />
@@ -1172,6 +1182,120 @@ function EditorContent({ onBack }: EditorProps) {
             <div className="flex-1 overflow-y-auto p-6 space-y-6 min-w-[450px]">
                 {activeTab === 'ANALYSIS' && (
                   <>
+                  {selectedNode && (
+                    <div className="p-4 rounded-xl bg-blue-500/10 border border-blue-500/30 mb-6">
+                      <div className="flex items-center justify-between mb-4">
+                      <h3 className="text-lg font-bold text-white">
+                        Node Properties
+                      </h3>
+
+                      <button
+                        onClick={() => setSelectedNode(null)}
+                        className="rounded-md p-1 text-slate-400 hover:bg-white/10 hover:text-white transition-colors"
+                        title="Close"
+                      >
+                        <X size={16} />
+                      </button>
+                    </div>
+                    <div className="space-y-3 text-sm">
+                      <div>
+                        <span className="text-slate-400">ID:</span>
+                        <p className="text-white">{selectedNode.id}</p>
+                      </div>
+                      <div>
+                        <span className="text-slate-400">Type:</span>
+                        <p className="text-white">{selectedNode.type}</p>
+                      </div>
+                      <div>
+                      <span className="text-slate-400">Label:</span>
+
+                      <input
+                        value={selectedNode.data?.label || ""}
+                        onChange={(e) => {
+                          const newLabel = e.target.value;
+
+                          setSelectedNode((prev) =>
+                            prev
+                              ? {
+                                  ...prev,
+                                  data: {
+                                    ...prev.data,
+                                    label: newLabel,
+                                  },
+                                }
+                              : null
+                          );
+
+                          setNodes((nds) =>
+                            nds.map((node) =>
+                              node.id === selectedNode.id
+                                ? {
+                                    ...node,
+                                    data: {
+                                      ...node.data,
+                                      label: newLabel,
+                                    },
+                                  }
+                                : node
+                            )
+                          );
+                        }}
+                        className="mt-2 w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-white outline-none focus:border-blue-500"
+                      />
+                      <div>
+                        <span className="text-slate-400">Connections:</span>
+
+                        <div className="mt-2 space-y-2">
+                          {edges
+                            .filter(
+                              (edge) =>
+                                edge.source === selectedNode.id ||
+                                edge.target === selectedNode.id
+                            )
+                            .map((edge) => {
+                              const connectedNode = nodes.find(
+                                (n) =>
+                                  n.id ===
+                                  (edge.source === selectedNode.id
+                                    ? edge.target
+                                    : edge.source)
+                              );
+
+                              return (
+                                <div
+                                  key={edge.id}
+                                  className="rounded-lg bg-slate-800 px-3 py-2 text-sm text-slate-200"
+                                >
+                                  {edge.source === selectedNode.id ? (
+                                    <>
+                                      <span className="text-blue-400">Outgoing → </span>
+                                      {connectedNode?.data?.label}
+                                    </>
+                                  ) : (
+                                    <>
+                                      <span className="text-green-400">Incoming ← </span>
+                                      {connectedNode?.data?.label}
+                                    </>
+                                  )}
+                                </div>
+                              );
+                            })}
+
+                          {edges.filter(
+                            (edge) =>
+                              edge.source === selectedNode.id ||
+                              edge.target === selectedNode.id
+                          ).length === 0 && (
+                            <p className="text-xs text-slate-500">
+                              No connections
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                    </div>
+                    </div>
+                  )}
                     <div className="p-4 rounded-xl bg-white/5 border border-white/5">
                         <div className="flex items-center gap-2 mb-3 text-sm font-semibold text-white"><Activity size={16} className="text-emerald-400" /> Executive Summary</div>
                         <p className="text-sm text-slate-300 leading-relaxed">{graphData.summary}</p>
