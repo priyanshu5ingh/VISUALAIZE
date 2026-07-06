@@ -590,3 +590,4 @@ cd frontend && npm install && npm run dev
   Made with 🚀 by developers, for developers
   
 </div>
+# TODO: [ui]: replace default next.js favicon with custom site icon (#57)
