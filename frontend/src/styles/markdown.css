@@ -1,0 +1,466 @@
+/* ============================================
+   MARKDOWN RENDERER STYLES
+   ============================================ */
+
+.markdown-renderer {
+  font-size: 14px;
+  line-height: 1.7;
+  color: #1e293b;
+  word-wrap: break-word;
+}
+
+/* ---------- HEADINGS ---------- */
+.markdown-h1 {
+  font-size: 26px;
+  font-weight: 700;
+  margin: 20px 0 12px;
+  color: #0f172a;
+  border-bottom: 2px solid #e2e8f0;
+  padding-bottom: 8px;
+}
+
+.markdown-h2 {
+  font-size: 22px;
+  font-weight: 600;
+  margin: 18px 0 10px;
+  color: #0f172a;
+}
+
+.markdown-h3 {
+  font-size: 18px;
+  font-weight: 600;
+  margin: 14px 0 8px;
+  color: #1e293b;
+}
+
+.markdown-h4 {
+  font-size: 16px;
+  font-weight: 600;
+  margin: 12px 0 6px;
+  color: #1e293b;
+}
+
+/* ---------- PARAGRAPHS ---------- */
+.markdown-p {
+  margin: 10px 0;
+  line-height: 1.8;
+}
+
+/* ---------- LISTS ---------- */
+.markdown-ul {
+  margin: 10px 0;
+  padding-left: 24px;
+  list-style-type: disc;
+}
+
+.markdown-ol {
+  margin: 10px 0;
+  padding-left: 24px;
+  list-style-type: decimal;
+}
+
+.markdown-li {
+  margin: 4px 0;
+  line-height: 1.6;
+}
+
+.markdown-ul .markdown-li {
+  list-style-type: disc;
+}
+
+.markdown-ol .markdown-li {
+  list-style-type: decimal;
+}
+
+/* ---------- INLINE CODE ---------- */
+.markdown-inline-code {
+  background: #f1f5f9;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-family: 'Fira Code', 'Courier New', monospace;
+  font-size: 13px;
+  color: #d63384;
+  border: 1px solid #e2e8f0;
+}
+
+/* ---------- CODE BLOCKS ---------- */
+.markdown-code-block {
+  display: block;
+  background: #0f172a;
+  color: #e2e8f0;
+  padding: 16px 20px;
+  border-radius: 8px;
+  font-family: 'Fira Code', 'Courier New', monospace;
+  font-size: 13px;
+  overflow-x: auto;
+  margin: 12px 0;
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
+
+.markdown-code-block code {
+  background: transparent;
+  color: inherit;
+  padding: 0;
+  border: none;
+}
+
+/* ---------- LINKS ---------- */
+.markdown-link {
+  color: #2563eb;
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.2s;
+}
+
+.markdown-link:hover {
+  color: #1d4ed8;
+  text-decoration: underline;
+}
+
+/* ---------- BLOCKQUOTES ---------- */
+.markdown-blockquote {
+  border-left: 4px solid #3b82f6;
+  padding: 10px 18px;
+  margin: 12px 0;
+  background: #f8fafc;
+  color: #475569;
+  border-radius: 0 6px 6px 0;
+  font-style: italic;
+}
+
+.markdown-blockquote p {
+  margin: 4px 0;
+}
+
+/* ---------- HORIZONTAL RULES ---------- */
+.markdown-hr {
+  border: none;
+  border-top: 2px solid #e2e8f0;
+  margin: 20px 0;
+}
+
+/* ---------- TABLES ---------- */
+.markdown-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 12px 0;
+  font-size: 13px;
+}
+
+.markdown-table th {
+  background: #f1f5f9;
+  padding: 8px 12px;
+  text-align: left;
+  font-weight: 600;
+  border: 1px solid #e2e8f0;
+}
+
+.markdown-table td {
+  padding: 8px 12px;
+  border: 1px solid #e2e8f0;
+}
+
+.markdown-table tr:nth-child(even) {
+  background: #f8fafc;
+}
+
+/* ============================================
+   NODE TOOLTIP STYLES
+   ============================================ */
+
+.node-tooltip {
+  max-width: 320px;
+  min-width: 200px;
+  padding: 14px 16px;
+  background: #ffffff;
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  border: 1px solid #e2e8f0;
+}
+
+.node-title {
+  margin: 0 0 10px 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.node-description {
+  margin: 8px 0 12px 0;
+  padding: 10px 12px;
+  background: #f8fafc;
+  border-radius: 6px;
+  border-left: 3px solid #3b82f6;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.node-description .markdown-renderer {
+  font-size: 13px;
+}
+
+.node-meta {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid #e2e8f0;
+  font-size: 11px;
+  color: #94a3b8;
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.node-meta span {
+  background: #f1f5f9;
+  padding: 2px 10px;
+  border-radius: 12px;
+}
+
+/* ============================================
+   NODE SIDEBAR STYLES
+   ============================================ */
+
+.node-sidebar {
+  position: fixed;
+  right: 0;
+  top: 0;
+  width: 420px;
+  max-width: 90vw;
+  height: 100vh;
+  background: #ffffff;
+  box-shadow: -6px 0 32px rgba(0, 0, 0, 0.12);
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  animation: slideIn 0.25s ease-out;
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+/* ---------- Sidebar Header ---------- */
+.sidebar-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 18px 24px;
+  border-bottom: 1px solid #e2e8f0;
+  background: #f8fafc;
+  flex-shrink: 0;
+}
+
+.sidebar-header h2 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  color: #0f172a;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 80%;
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  font-size: 22px;
+  cursor: pointer;
+  color: #94a3b8;
+  padding: 4px 8px;
+  border-radius: 6px;
+  transition: all 0.2s;
+  line-height: 1;
+}
+
+.close-btn:hover {
+  color: #ef4444;
+  background: #fef2f2;
+}
+
+/* ---------- Sidebar Body ---------- */
+.sidebar-body {
+  flex: 1;
+  padding: 24px;
+  overflow-y: auto;
+}
+
+.sidebar-body::-webkit-scrollbar {
+  width: 5px;
+}
+
+.sidebar-body::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 4px;
+}
+
+.sidebar-body::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+
+.sidebar-body::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* ---------- Description Section ---------- */
+.description-section {
+  margin-bottom: 24px;
+}
+
+.description-section label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 8px;
+}
+
+.description-preview {
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 14px 16px;
+  min-height: 70px;
+  background: #fafafa;
+  transition: border-color 0.2s;
+}
+
+.description-preview:hover {
+  border-color: #94a3b8;
+}
+
+.empty-description {
+  color: #94a3b8;
+  font-style: italic;
+  font-size: 13px;
+}
+
+/* ---------- Edit Section ---------- */
+.edit-section {
+  margin-bottom: 24px;
+}
+
+.edit-section label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 8px;
+}
+
+.edit-section textarea {
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 14px;
+  resize: vertical;
+  min-height: 100px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  background: #ffffff;
+  color: #1e293b;
+}
+
+.edit-section textarea:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+}
+
+.save-btn {
+  margin-top: 10px;
+  padding: 8px 20px;
+  background: #3b82f6;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.1s;
+}
+
+.save-btn:hover {
+  background: #2563eb;
+}
+
+.save-btn:active {
+  transform: scale(0.97);
+}
+
+/* ---------- Markdown Help ---------- */
+.markdown-help {
+  padding: 14px 18px;
+  background: #f1f5f9;
+  border-radius: 8px;
+  font-size: 13px;
+  border: 1px solid #e2e8f0;
+}
+
+.markdown-help h4 {
+  margin: 0 0 10px 0;
+  font-size: 14px;
+  color: #0f172a;
+}
+
+.markdown-help ul {
+  margin: 4px 0;
+  padding-left: 20px;
+  list-style-type: none;
+}
+
+.markdown-help li {
+  margin: 5px 0;
+  color: #475569;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.markdown-help code {
+  background: #e2e8f0;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  color: #1e293b;
+  font-family: 'Fira Code', 'Courier New', monospace;
+}
+
+/* ---------- Responsive ---------- */
+@media (max-width: 640px) {
+  .node-sidebar {
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .sidebar-header {
+    padding: 14px 18px;
+  }
+
+  .sidebar-body {
+    padding: 16px;
+  }
+
+  .node-tooltip {
+    max-width: 260px;
+    padding: 10px 12px;
+  }
+
+  .markdown-code-block {
+    font-size: 12px;
+    padding: 12px 14px;
+  }
+}
