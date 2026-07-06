@@ -9,12 +9,10 @@
     "lint": "eslint"
   },
   "dependencies": {
-    "@react-three/drei": "^9.122.0",
-    "@react-three/fiber": "^8.18.0",
-    "@types/three": "^0.185.0",
-    "class-variance-authority": "^0.7.1",
     "@react-three/drei": "^10.7.7",
     "@react-three/fiber": "^9.6.1",
+    "@types/three": "^0.185.0",
+    "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "dagre": "^0.8.5",
     "framer-motion": "^12.42.0",
@@ -25,7 +23,9 @@
     "next": "^16.2.7",
     "react": "19.2.7",
     "react-dom": "19.2.7",
+    "react-markdown": "^10.1.0",
     "reactflow": "^11.11.4",
+    "remark-gfm": "^4.0.1",
     "tailwind-merge": "^3.6.0",
     "three": "^0.185.0"
   },
