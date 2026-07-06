@@ -590,3 +590,4 @@ cd frontend && npm install && npm run dev
   Made with 🚀 by developers, for developers
   
 </div>
+# TODO: ✨ [ui/ux]: add "copy to clipboard" button to the code snippet view (#126)
