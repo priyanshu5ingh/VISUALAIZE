@@ -16,6 +16,7 @@ import redis
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
+from collections import OrderedDict
 
 room_users = {}
 
@@ -33,7 +34,7 @@ REDIS_URL = os.getenv("REDIS_URL", "")
 class InMemoryCache:
     """Fallback in-memory cache (TTL-aware, size-bounded) used when Redis is unavailable."""
     def __init__(self, max_size: int = 1000):
-        self._cache: dict = {}
+        self._cache: OrderedDict[str, dict] = OrderedDict()
         self._max_size = max_size
         logger.info("💡 Created in-memory fallback prompt cache (max_size=%d).", max_size)
 
@@ -41,18 +42,33 @@ class InMemoryCache:
         entry = self._cache.get(key)
         if entry is None:
             return None
-        if time.monotonic() < entry['expires_at']:
-            return entry['value']
+        
         # Expired — evict lazily
-        del self._cache[key]
-        return None
+        if time.monotonic() >= entry['expires_at']:
+            del self._cache[key]
+            return None
+        
+        # Mark the entry as recently used to maintain LRU ordering.
+        self._cache.move_to_end(key)
+        
+        return entry['value']
 
     def setex(self, key: str, time_sec: int, value: str) -> None:
+
+        # Refresh existing keys so reinsertion updates their LRU position.
+        self._cache.pop(key, None)
+
         if len(self._cache) >= self._max_size:
-            # Evict oldest 20% to avoid constant full-clears
+            # Evict the least recently used 20% to avoid constant full-clears.
             evict_count = max(1, self._max_size // 5)
-            for k in list(self._cache.keys())[:evict_count]:
-                del self._cache[k]
+            
+            for _ in range(evict_count):
+                if not self._cache:
+                    break
+
+                # Evict the least recently used entries while preserving batch eviction.
+                self._cache.popitem(last=False)
+
         self._cache[key] = {
             'value': value,
             'expires_at': time.monotonic() + time_sec
