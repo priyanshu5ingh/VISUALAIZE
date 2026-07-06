@@ -590,3 +590,4 @@ cd frontend && npm install && npm run dev
   Made with 🚀 by developers, for developers
   
 </div>
+# TODO: 📝 [docs]: create a comprehensive `contributing.md` guide (#125)
