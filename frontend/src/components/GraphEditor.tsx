@@ -10,6 +10,9 @@ import {
   Activity, BookOpen, PlayCircle, Layers, Code, Copy, Check, Zap,
   Globe, Mic, Download, ChevronDown, MessageSquare, Send, Paperclip,
   PanelRightClose, PanelRightOpen, AlertTriangle, ArrowRight, X, RefreshCw,
+  Maximize2, Minimize2, ZoomIn, ZoomOut, Maximize, Lock, Unlock, History, HelpCircle,
+  Trash2
+} from 'lucide-react';
   Maximize2, Minimize2, ZoomIn, ZoomOut, Maximize, Lock, Unlock,
   History, Eye, EyeOff, HelpCircle, Hand, MousePointer2,Trash2
 } from "lucide-react";
@@ -34,6 +37,7 @@ import HolographicScene from './HolographicScene';
 import { flushSync } from 'react-dom';
 import ErrorModal from './ErrorModal';
 import LoadingCore from './LoadingCore';
+import Tooltip from './common/Tooltip';  // ✅ ADDED IMPORT
 
 interface EditorProps { onBack: () => void; }
 
@@ -893,14 +897,30 @@ function EditorContent({ onBack }: EditorProps) {
           </button>
 
           <div className="flex gap-4 pointer-events-auto">
-             {/* --- ADDED HISTORY BUTTON HERE --- */}
              <button 
                 onClick={() => setHistoryOpen(true)}
                 className="focus-ring flex items-center gap-2 px-3 py-1 rounded-full bg-slate-800/80 backdrop-blur-md border border-white/10 text-xs text-slate-300 hover:bg-blue-600 hover:text-white transition-all shadow-lg"
              >
                 <History size={14} /> HISTORY
              </button>
+              <button
+                onClick={() => setShowShortcuts(true)}
+                className="focus-ring flex items-center gap-2 px-3 py-1 rounded-full bg-slate-800/80 backdrop-blur-md border border-white/10 text-xs text-slate-300 hover:bg-blue-600 hover:text-white transition-all shadow-lg"
+              >
+                <HelpCircle size={14} />
+                HELP
+              </button>
              {/* ------------------------------- */}
+
+             {/* 🗑️ CLEAR ALL BUTTON - TOP BAR */}
+             {nodes.length > 0 && (
+               <button
+                 onClick={handleClearAll}
+                 className="focus-ring flex items-center gap-2 px-3 py-1 rounded-full bg-red-500/20 border border-red-500/30 text-xs text-red-400 hover:bg-red-500/30 hover:text-red-300 transition-all shadow-lg"
+               >
+                 <Trash2 size={14} /> CLEAR ALL
+               </button>
+             )}
 
              <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-slate-900/60 backdrop-blur-md border border-white/10 text-xs font-mono text-emerald-400 shadow-lg">
                 <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"/> ONLINE
@@ -977,6 +997,52 @@ function EditorContent({ onBack }: EditorProps) {
 
                 {nodes.length > 0 && (
                   <Controls showZoom={false} showFitView={false} showInteractive={false}>
+                    {/* ✅ TOOLTIPS ADDED HERE */}
+                    <Tooltip text="Zoom In" position="top">
+                      <ControlButton
+                        onClick={() => zoomIn({ duration: 300 })}
+                        aria-label="Zoom in"
+                      >
+                        <ZoomIn size={14} />
+                      </ControlButton>
+                    </Tooltip>
+                    
+                    <Tooltip text="Zoom Out" position="top">
+                      <ControlButton
+                        onClick={() => zoomOut({ duration: 300 })}
+                        aria-label="Zoom out"
+                      >
+                        <ZoomOut size={14} />
+                      </ControlButton>
+                    </Tooltip>
+                    
+                    <Tooltip text="Fit View" position="top">
+                      <ControlButton
+                        onClick={() => fitView({ padding: 0.15, duration: 500 })}
+                        aria-label="Fit view"
+                      >
+                        <Maximize size={14} />
+                      </ControlButton>
+                    </Tooltip>
+                    
+                    <Tooltip text="Lock/Unlock Nodes" position="top">
+                      <ControlButton
+                        onClick={() => setNodes(nds => nds.map(n => ({ ...n, draggable: !(n.draggable ?? true) })))}
+                        aria-label="Toggle interactive"
+                      >
+                        <Lock size={14} />
+                      </ControlButton>
+                    </Tooltip>
+                    
+                    <Tooltip text="Clear All" position="top">
+                      <ControlButton
+                        onClick={handleClearAll}
+                        aria-label="Clear all nodes and edges"
+                        className="hover:bg-red-500/20 transition-colors"
+                      >
+                        <Trash2 size={14} className="text-red-400 hover:text-red-300" />
+                      </ControlButton>
+                    </Tooltip>
                     <ControlButton
                        onClick={() => setPanOnDrag(false)}
                        title="Select Mode"
