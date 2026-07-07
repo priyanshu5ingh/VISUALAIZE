@@ -8,7 +8,7 @@ import { getLayoutedElements } from '../utils/layout';
 import {
   ArrowLeft, Box, GitBranch, Network, Share2, Terminal,
   Activity, BookOpen, PlayCircle, Layers, Code, Copy, Check, Zap,
-  Globe, Mic, Download, ChevronDown, MessageSquare, Send, Paperclip,
+  Globe, Mic, FileCode2, ChevronDown, MessageSquare, Send, Paperclip,
   PanelRightClose, PanelRightOpen, AlertTriangle, ArrowRight, X, RefreshCw,
   Maximize2, Minimize2, ZoomIn, ZoomOut, Maximize, Lock, Unlock, History, Hand, MousePointer2, Trash2 
 } from 'lucide-react';
@@ -1169,7 +1169,7 @@ function EditorContent({ onBack }: EditorProps) {
     title="Download JSON"
     aria-label="Download graph as JSON"
   >
-    <Code size={18} />
+    <FileCode2 size={18} />
   </button>
 
   <button
