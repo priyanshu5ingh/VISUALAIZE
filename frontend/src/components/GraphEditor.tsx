@@ -10,9 +10,9 @@ import {
   Activity, BookOpen, PlayCircle, Layers, Code, Copy, Check, Zap,
   Globe, Mic, Download, ChevronDown, MessageSquare, Send, Paperclip,
   PanelRightClose, PanelRightOpen, AlertTriangle, ArrowRight, X, RefreshCw,
-  Maximize2, Minimize2, ZoomIn, ZoomOut, Maximize, Lock, Unlock,
-  History, Eye, EyeOff, HelpCircle, Hand, MousePointer2,Trash2
-} from "lucide-react";
+  Maximize2, Minimize2, ZoomIn, ZoomOut, Maximize, Lock, Unlock, History,
+  Eye, EyeOff, HelpCircle, Hand, MousePointer2, Trash2
+} from 'lucide-react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import ReactFlow, {
   applyEdgeChanges, applyNodeChanges,
@@ -52,6 +52,23 @@ interface GraphData {
 interface codeObject {
   code_snippet: string;
   code_explanation: string;
+}
+
+interface DiagramChatContext {
+  title: string;
+  summary: string;
+  explanation: string;
+  nodes: {
+    id: string;
+    label: string;
+    position?: Node['position'];
+  }[];
+  edges: {
+    id: string;
+    source: string;
+    target: string;
+    label?: string;
+  }[];
 }
 
 interface SpeechRecognitionEvent extends Event {
@@ -258,8 +275,6 @@ const ZeroState = ({ onSelect }: { onSelect: (text: string) => void }) => {
 function EditorContent({ onBack }: EditorProps) {
   const [nodes, setNodes] = useState<Node[]>([]);
   const [edges, setEdges] = useState<Edge[]>([]);
-  const [showEdgeLabels, setShowEdgeLabels] = useState(true);
-
   const [viewport, setViewport] = useState({ x: 0, y: 0, zoom: 1 });
   const [prompt, setPrompt] = useState('');
   const submitForm = () => {
@@ -493,7 +508,7 @@ function EditorContent({ onBack }: EditorProps) {
         id: `e-${i}`,
         source: e.source,
         target: e.target,
-        label: showEdgeLabels ? e.label : '',
+        label: e.label,
         type: 'smoothstep',
         markerEnd: {
           type: MarkerType.ArrowClosed,
@@ -571,8 +586,8 @@ function EditorContent({ onBack }: EditorProps) {
   const loadFromHistory = (diagram: SavedDiagram) => {
     setPrompt(diagram.prompt);
     setGraphData(diagram.data as any);
-    setNodes(diagram.data.nodes);
-    setEdges(diagram.data.edges);
+    setNodes(diagram.nodes);
+    setEdges(diagram.edges);
     setHistoryOpen(false);
     setIsSidebarOpen(true);
   };
@@ -635,18 +650,48 @@ function EditorContent({ onBack }: EditorProps) {
     } finally { setIsRegeneratingCode(false); }
   };
 
+  const buildDiagramChatContext = (): DiagramChatContext | null => {
+    if (!graphData) return null;
+
+    const currentNodes = getNodes();
+    const currentEdges = getEdges();
+
+    return {
+      title: graphData.title,
+      summary: graphData.summary,
+      explanation: graphData.explanation,
+      nodes: currentNodes.map((node) => ({
+        id: node.id,
+        label: String(node.data?.label ?? node.id),
+        position: node.position,
+      })),
+      edges: currentEdges.map((edge) => ({
+        id: edge.id,
+        source: edge.source,
+        target: edge.target,
+        label: typeof edge.label === 'string' ? edge.label : undefined,
+      })),
+    };
+  };
+
   const handleChatSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!chatInput.trim() || !graphData) return;
     const userMsg = chatInput;
+    const graph = buildDiagramChatContext();
+    if (!graph) return;
+
     setChatInput('');
     setChatHistory(prev => [...prev, { role: 'user', text: userMsg }]);
     setIsChatting(true);
     try {
         const res = await fetch(`${BACKEND_URL}/chat`, {
             method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ message: userMsg, context: `Title: ${graphData.title}. Explanation: ${graphData.explanation}` }),
+            body: JSON.stringify({ message: userMsg, graph }),
         });
+        if (!res.ok) {
+            throw new Error(`Chat request failed with ${res.status}`);
+        }
         const data = await res.json();
         setChatHistory(prev => [...prev, { role: 'ai', text: data.reply }]);
     } catch (err) {
@@ -753,15 +798,10 @@ function EditorContent({ onBack }: EditorProps) {
   }, [visibleNodes]);
 
   const filteredEdges = useMemo(() => {
-    return edges
-      .filter(
-        (e) => visibleNodeIds.has(e.source) && visibleNodeIds.has(e.target)
-      )
-      .map((e) => ({
-        ...e,
-        label: showEdgeLabels ? e.label : '',
-      }));
-  }, [edges, visibleNodeIds, showEdgeLabels]);
+    return edges.filter(
+      (e) => visibleNodeIds.has(e.source) && visibleNodeIds.has(e.target)
+    );
+  }, [edges, visibleNodeIds]);
 
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
@@ -1021,27 +1061,15 @@ function EditorContent({ onBack }: EditorProps) {
                     >
                       <Lock size={14} />
                     </ControlButton>
+                    {/* 🗑️ CLEAR ALL BUTTON - CONTROLS PANEL */}
                     <ControlButton
-  onClick={() => setShowEdgeLabels(prev => !prev)}
-  title="Toggle Edge Labels"
-  aria-label="Toggle edge labels"
->
-  {showEdgeLabels ? (
-    <Eye size={14} />
-  ) : (
-    <EyeOff size={14} />
-  )}
-</ControlButton>
-
-<ControlButton
-  onClick={handleClearAll}
-  title="Clear All"
-  aria-label="Clear all nodes and edges"
-  className="hover:bg-red-500/20 transition-colors"
->
-  <Trash2 size={14} className="text-red-400 hover:text-red-300" />
-</ControlButton>
-            
+                      onClick={handleClearAll}
+                      title="Clear All"
+                      aria-label="Clear all nodes and edges"
+                      className="hover:bg-red-500/20 transition-colors"
+                    >
+                      <Trash2 size={14} className="text-red-400 hover:text-red-300" />
+                    </ControlButton>
                   </Controls>
                 )}
 
