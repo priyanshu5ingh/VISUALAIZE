@@ -128,17 +128,23 @@ VisualAIze/
 └── backend/                           # Python Backend
     ├── test_key.py                   # Gemini API Key Validation
     └── venv/                         # Virtual Environment
-
-  ---
-
-  ## 🖼️ Diagrams
-
-  Visual diagrams for the architecture and data flow are available in the `docs/` folder.
-
-  ![Architecture Diagram](docs/architecture.svg)
-
-  ![Data Flow](docs/data-flow.svg)
 ```
+
+---
+
+## 🖼️ Diagrams
+
+Visual diagrams for the architecture and data flow are available in the `docs/` folder.
+
+![Architecture Diagram](docs/architecture.svg)
+
+![Data Flow](docs/data-flow.svg)
+
+### Request flow: Frontend, Backend, Redis & Gemini
+
+![Architecture overview with Redis cache](docs/architecture-overview.svg)
+
+This diagram shows how a request travels from the **Next.js frontend** to the **FastAPI backend**, which checks **Redis** for a cached diagram before calling the **Gemini API** to generate new graph data — caching the result for future requests.
 
 ---
 
@@ -590,3 +596,30 @@ cd frontend && npm install && npm run dev
   Made with 🚀 by developers, for developers
   
 </div>
+
+## ✨ README Improvement Notes
+
+### 📌 Formatting Enhancements Needed
+- Improve heading hierarchy for better readability
+- Ensure consistent spacing between sections
+- Use proper Markdown formatting for code blocks and lists
+- Align all installation and usage steps properly
+
+### 🚀 Suggested Structure Upgrade
+- Introduction
+- Features
+- Tech Stack
+- Installation
+- Usage
+- Project Structure
+- Contribution Guidelines
+- License
+
+### 🛠️ Documentation Improvements
+- Add badges (optional): build, license, contributors
+- Add screenshots for better UI understanding
+- Standardize code blocks for commands
+
+### 🎯 Goal
+Improve onboarding experience for new contributors and users by making README more structured, readable, and professional.
+
