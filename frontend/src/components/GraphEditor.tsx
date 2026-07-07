@@ -1,6 +1,7 @@
 // frontend/src/components/GraphEditor.tsx
 'use client';
 import HistoryPanel from './HistoryPanel';
+import { toast } from "sonner";
 import { saveToHistory, getHistory, deleteFromHistory, SavedDiagram } from '../utils/storage';
 
 import { toPng } from 'html-to-image';
@@ -10,7 +11,7 @@ import {
   Activity, BookOpen, PlayCircle, Layers, Code, Copy, Check, Zap,
   Globe, Mic, Download, ChevronDown, MessageSquare, Send, Paperclip,
   PanelRightClose, PanelRightOpen, AlertTriangle, ArrowRight, X, RefreshCw,
-  Maximize2, Minimize2, ZoomIn, ZoomOut, Maximize, Lock, Unlock, History,Hand, MousePointer2
+  Maximize2, Minimize2, ZoomIn, ZoomOut, Maximize, Lock, Unlock, History, Hand, MousePointer2, Trash2
 } from 'lucide-react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import ReactFlow, {
@@ -676,13 +677,14 @@ function EditorContent({ onBack }: EditorProps) {
       recognition.onerror = () => setIsListening(false);
       recognition.onend = () => setIsListening(false);
       recognition.start();
-    } else { alert("Voice control requires Chrome/Edge."); }
+   } else {
+  toast.error("Voice control requires Chrome or Microsoft Edge.");
+}
   };
-
   const handleExport = () => {
     if (reactFlowWrapper.current === null) return;
     toPng(reactFlowWrapper.current, { backgroundColor: '#020617' }).then((dataUrl) => {
-        const link = document.createElement('a'); link.download = 'visualaize-graph.png'; link.href = dataUrl; link.click();
+        const link = document.createElement('a'); link.download = 'visualaize-graph.png'; link.href = dataUrl; link.click(); toast.success("Graph exported as PNG!");
     });
   };
 
@@ -690,6 +692,7 @@ function EditorContent({ onBack }: EditorProps) {
     if (graphData?.code_snippet) {
       navigator.clipboard.writeText(graphData.code_snippet);
       setCopied(true);
+      toast.success("Code copied to clipboard!");
       if (copyTimeoutRef.current) clearTimeout(copyTimeoutRef.current);
       copyTimeoutRef.current = setTimeout(() => setCopied(false), 2000);
     }
@@ -721,7 +724,7 @@ function EditorContent({ onBack }: EditorProps) {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-
+    toast.success("Code downloaded!");
     URL.revokeObjectURL(url);
   };
 
