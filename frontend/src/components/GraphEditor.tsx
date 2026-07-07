@@ -33,6 +33,7 @@ import HolographicScene from './HolographicScene';
 import { flushSync } from 'react-dom';
 import ErrorModal from './ErrorModal';
 import LoadingCore from './LoadingCore';
+import Tooltip from './common/Tooltip';  // ✅ ADDED IMPORT
 
 interface EditorProps { onBack: () => void; }
 
@@ -957,43 +958,52 @@ function EditorContent({ onBack }: EditorProps) {
 
                 {nodes.length > 0 && (
                   <Controls showZoom={false} showFitView={false} showInteractive={false}>
-                    <ControlButton
-                      onClick={() => zoomIn({ duration: 300 })}
-                      title="Zoom In"
-                      aria-label="Zoom in"
-                    >
-                      <ZoomIn size={14} />
-                    </ControlButton>
-                    <ControlButton
-                      onClick={() => zoomOut({ duration: 300 })}
-                      title="Zoom Out"
-                      aria-label="Zoom out"
-                    >
-                      <ZoomOut size={14} />
-                    </ControlButton>
-                    <ControlButton
-                      onClick={() => fitView({ padding: 0.15, duration: 500 })}
-                      title="Fit View"
-                      aria-label="Fit view"
-                    >
-                      <Maximize size={14} />
-                    </ControlButton>
-                    <ControlButton
-                      onClick={() => setNodes(nds => nds.map(n => ({ ...n, draggable: !(n.draggable ?? true) })))}
-                      title="Toggle Interactive (lock/unlock nodes)"
-                      aria-label="Toggle interactive"
-                    >
-                      <Lock size={14} />
-                    </ControlButton>
-                    {/* 🗑️ CLEAR ALL BUTTON - CONTROLS PANEL */}
-                    <ControlButton
-                      onClick={handleClearAll}
-                      title="Clear All"
-                      aria-label="Clear all nodes and edges"
-                      className="hover:bg-red-500/20 transition-colors"
-                    >
-                      <Trash2 size={14} className="text-red-400 hover:text-red-300" />
-                    </ControlButton>
+                    {/* ✅ TOOLTIPS ADDED HERE */}
+                    <Tooltip text="Zoom In" position="top">
+                      <ControlButton
+                        onClick={() => zoomIn({ duration: 300 })}
+                        aria-label="Zoom in"
+                      >
+                        <ZoomIn size={14} />
+                      </ControlButton>
+                    </Tooltip>
+                    
+                    <Tooltip text="Zoom Out" position="top">
+                      <ControlButton
+                        onClick={() => zoomOut({ duration: 300 })}
+                        aria-label="Zoom out"
+                      >
+                        <ZoomOut size={14} />
+                      </ControlButton>
+                    </Tooltip>
+                    
+                    <Tooltip text="Fit View" position="top">
+                      <ControlButton
+                        onClick={() => fitView({ padding: 0.15, duration: 500 })}
+                        aria-label="Fit view"
+                      >
+                        <Maximize size={14} />
+                      </ControlButton>
+                    </Tooltip>
+                    
+                    <Tooltip text="Lock/Unlock Nodes" position="top">
+                      <ControlButton
+                        onClick={() => setNodes(nds => nds.map(n => ({ ...n, draggable: !(n.draggable ?? true) })))}
+                        aria-label="Toggle interactive"
+                      >
+                        <Lock size={14} />
+                      </ControlButton>
+                    </Tooltip>
+                    
+                    <Tooltip text="Clear All" position="top">
+                      <ControlButton
+                        onClick={handleClearAll}
+                        aria-label="Clear all nodes and edges"
+                        className="hover:bg-red-500/20 transition-colors"
+                      >
+                        <Trash2 size={14} className="text-red-400 hover:text-red-300" />
+                      </ControlButton>
+                    </Tooltip>
                   </Controls>
                 )}
 
