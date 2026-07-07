@@ -685,6 +685,8 @@ function EditorContent({ onBack }: EditorProps) {
     if (reactFlowWrapper.current === null) return;
     toPng(reactFlowWrapper.current, { backgroundColor: '#020617' }).then((dataUrl) => {
         const link = document.createElement('a'); link.download = 'visualaize-graph.png'; link.href = dataUrl; link.click(); toast.success("Graph exported as PNG!");
+        }) .catch(() => {
+      toast.error("Failed to export graph as PNG.");
     });
   };
 
