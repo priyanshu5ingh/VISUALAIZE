@@ -1,7 +1,10 @@
 // frontend/src/components/GraphEditor.tsx
 'use client';
 import HistoryPanel from './HistoryPanel';
-import { saveToHistory, getHistory, deleteFromHistory, SavedDiagram } from '../utils/storage';
+import { saveToHistory, getHistory, deleteFromHistory, SavedDiagram } from '../utils/storage';ote
+
+import { TemplatePanel } from "./TemplatePanel";
+import type { DiagramTemplate } from "../utils/templates";
 
 import { toPng } from 'html-to-image';
 import { getLayoutedElements } from '../utils/layout';
@@ -219,7 +222,13 @@ const EmptyState = () => {
   );
 };
 
-const ZeroState = ({ onSelect }: { onSelect: (text: string) => void }) => {
+const ZeroState = ({ 
+  onSelect,
+  onLoadTemplate
+}: {
+  onSelect: (text: string) => void;
+  onLoadTemplate: (template: DiagramTemplate) => void;  
+ }) => {
   const suggestions = [
     { icon: GitBranch, label: "Binary DFA", desc: "Automaton Logic", prompt: "DFA that accepts binary strings ending in 101" },
     { icon: Network, label: "Neural Network", desc: "Architecture", prompt: "Diagram of a Transformer neural network architecture" },
@@ -319,6 +328,30 @@ function EditorContent({ onBack }: EditorProps) {
     },
     []
   );
+
+  // Handler: load a template directly into the ReactFlow canvas
+  const handleLoadTemplate = (template: DiagramTemplate) => {
+    // Set nodes and edges from the template
+    setNodes(template.nodes);
+    setEdges(template.edges);
+
+    // Apply Dagre auto-layout so nodes are neatly arranged
+    // (getLayoutedElements is already in layout.ts — check its exported name)
+    // If the function is called getLayoutedElements:
+    const { nodes: laid, edges: laidEdges } = getLayoutedElements(
+      template.nodes,
+      template.edges,
+      "TB"  // top-to-bottom layout direction
+    );
+    setNodes(laid);
+    setEdges(laidEdges);
+
+    // Log to the system terminal panel
+    setSystemLog((prev) => [
+      ...prev,
+      `✅ Loaded template: "${template.name}" (${template.nodes.length} nodes, ${template.edges.length} edges)`,
+    ]);
+  };
 
   const handleColorSelect = useCallback((color: string) => {
     setNodes((nds) =>
