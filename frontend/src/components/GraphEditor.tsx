@@ -3,6 +3,10 @@
 import HistoryPanel from './HistoryPanel';
 import { saveToHistory, getHistory, deleteFromHistory, SavedDiagram } from '../utils/storage';
 
+import { MyDiagramsPanel } from "./MyDiagramsPanel";
+import { saveDiagram } from "../utils/diagramStorage";
+import type { SavedDiagram } from "../utils/diagramStorage";
+
 import { toPng } from 'html-to-image';
 import { getLayoutedElements } from '../utils/layout';
 import {
@@ -70,6 +74,10 @@ interface WebkitSpeechRecognition extends EventTarget {
 interface WindowWithSpeech extends Window {
   webkitSpeechRecognition: new () => WebkitSpeechRecognition;
 }
+
+// Issue #292: track whether the sidebar is open + trigger re-renders after save
+const [showMyDiagrams, setShowMyDiagrams] = useState(false);
+const [diagramsRefreshKey, setDiagramsRefreshKey] = useState(0);
 
 const BACKEND_URL = "https://visualaize-backend.onrender.com";
 
@@ -319,6 +327,38 @@ function EditorContent({ onBack }: EditorProps) {
     },
     []
   );
+
+  // Save current diagram to localStorage
+const handleSaveDiagram = () => {
+  if (nodes.length === 0) {
+    setSystemLog((prev) => [
+      ...prev,
+      "⚠️ Nothing to save — generate a diagram first.",
+    ]);
+    return;
+  }
+  // 'prompt' is whatever state variable holds the current prompt text
+  // Check your GraphEditor.tsx for the exact name (probably 'prompt' or 'inputValue')
+  saveDiagram(prompt, nodes, edges);
+  setDiagramsRefreshKey((k) => k + 1); // Refresh the sidebar list
+  setSystemLog((prev) => [
+    ...prev,
+    `✅ Diagram saved to "My Diagrams" (${nodes.length} nodes)`,
+  ]);
+};
+
+  // Restore a saved diagram from the sidebar
+  const handleLoadSavedDiagram = (diagram: SavedDiagram) => {
+    setNodes(diagram.nodes);
+    setEdges(diagram.edges);
+    // Update the prompt input to show what this diagram was for
+    setPrompt(diagram.prompt);  // adjust to your actual setter name
+    setShowMyDiagrams(false);    // close the sidebar
+    setSystemLog((prev) => [
+      ...prev,
+      `📂 Loaded saved diagram: "${diagram.prompt.slice(0, 40)}…"`,
+    ]);
+  };
 
   const handleColorSelect = useCallback((color: string) => {
     setNodes((nds) =>
@@ -893,30 +933,47 @@ function EditorContent({ onBack }: EditorProps) {
           </button>
 
           <div className="flex gap-4 pointer-events-auto">
-             {/* --- ADDED HISTORY BUTTON HERE --- */}
-             <button 
-                onClick={() => setHistoryOpen(true)}
+            <button 
+              onClick={() => setHistoryOpen(true)}
+              className="focus-ring flex items-center gap-2 px-3 py-1 rounded-full bg-slate-800/80 backdrop-blur-md border border-white/10 text-xs text-slate-300 hover:bg-blue-600 hover:text-white transition-all shadow-lg"
+            >
+              <History size={14} /> HISTORY
+            </button>
+
+            <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-slate-900/60 backdrop-blur-md border border-white/10 text-xs font-mono text-emerald-400 shadow-lg">
+              <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"/> ONLINE
+            </div>
+
+            {/* --- NEW: Save button --- */}
+            <button
+              onClick={handleSaveDiagram}
+              className="focus-ring flex items-center gap-2 px-3 py-1 rounded-full bg-slate-800/80 backdrop-blur-md border border-white/10 text-xs text-slate-300 hover:bg-emerald-600 hover:text-white transition-all shadow-lg disabled:opacity-40 disabled:cursor-not-allowed"
+              disabled={nodes.length === 0}
+              title="Save current diagram to My Diagrams"
+            >
+              💾 Save
+            </button>
+
+            {/* --- NEW: My Diagrams toggle button --- */}
+            <button
+              onClick={() => setShowMyDiagrams(prev => !prev)}
+              className="focus-ring flex items-center gap-2 px-3 py-1 rounded-full bg-slate-800/80 backdrop-blur-md border border-white/10 text-xs text-slate-300 hover:bg-indigo-600 hover:text-white transition-all shadow-lg"
+              title="Open My Diagrams panel"
+            >
+              📂 My Diagrams
+            </button>
+
+            {graphData && (
+              <button
+                onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+                aria-label={isSidebarOpen ? 'Close analysis panel' : 'Open analysis panel'}
+                aria-expanded={isSidebarOpen}
                 className="focus-ring flex items-center gap-2 px-3 py-1 rounded-full bg-slate-800/80 backdrop-blur-md border border-white/10 text-xs text-slate-300 hover:bg-blue-600 hover:text-white transition-all shadow-lg"
-             >
-                <History size={14} /> HISTORY
-             </button>
-             {/* ------------------------------- */}
-
-             <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-slate-900/60 backdrop-blur-md border border-white/10 text-xs font-mono text-emerald-400 shadow-lg">
-                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"/> ONLINE
-             </div>
-
-             {graphData && (
-                 <button
-                    onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-                    aria-label={isSidebarOpen ? 'Close analysis panel' : 'Open analysis panel'}
-                    aria-expanded={isSidebarOpen}
-                    className="focus-ring flex items-center gap-2 px-3 py-1 rounded-full bg-slate-800/80 backdrop-blur-md border border-white/10 text-xs text-slate-300 hover:bg-blue-600 hover:text-white transition-all shadow-lg"
-                 >
-                    {isSidebarOpen ? <PanelRightClose size={14} aria-hidden="true" /> : <PanelRightOpen size={14} aria-hidden="true" />}
-                    {isSidebarOpen ? 'CLOSE PANEL' : 'OPEN PANEL'}
-                 </button>
-             )}
+              >
+                {isSidebarOpen ? <PanelRightClose size={14} aria-hidden="true" /> : <PanelRightOpen size={14} aria-hidden="true" />}
+                {isSidebarOpen ? 'CLOSE PANEL' : 'OPEN PANEL'}
+              </button>
+            )}
           </div>
         </div>
         )}
