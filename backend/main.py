@@ -7,7 +7,7 @@ import hashlib
 import logging
 from fastapi import FastAPI, HTTPException, Request, WebSocket, WebSocketDisconnect
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, ValidationError
 from fastapi.middleware.cors import CORSMiddleware
 import google.generativeai as genai
 from google.api_core import exceptions as google_exceptions
@@ -17,6 +17,7 @@ from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 from collections import OrderedDict
+from typing import Optional
 
 room_users = {}
 
@@ -26,10 +27,52 @@ load_dotenv()
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger(__name__)
 
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+if not GEMINI_API_KEY:
+    raise RuntimeError("GEMINI_API_KEY environment variable is not set.")
+
+genai.configure(api_key=GEMINI_API_KEY)
+model = genai.GenerativeModel("gemini-2.5-flash")  # adjust to your actual model name
+
+# ── FastAPI app ───────────────────────────────────────────────────────────────
+app = FastAPI(title="VISUALAIZE API", version="1.0.0")
+
+# Keep your existing CORS settings — don't change this section if it's already configured
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],      # tighten in production
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
 # --- REDIS CONFIG & CONNECTIVITY ---
 REDIS_HOST = os.getenv("REDIS_HOST", "localhost")
 REDIS_PORT = int(os.getenv("REDIS_PORT", 6379))
 REDIS_URL = os.getenv("REDIS_URL", "")
+
+
+class NodeData(BaseModel):
+    label: str
+
+class NodeSchema(BaseModel):
+    id: str
+    data: NodeData
+    position: Optional[dict] = {"x": 0, "y": 0}
+    type: Optional[str] = "default"
+
+class EdgeSchema(BaseModel):
+    id: str
+    source: str
+    target: str
+    label: Optional[str] = ""
+    type: Optional[str] = "default"
+    animated: Optional[bool] = False
+
+class DiagramResponse(BaseModel):
+    nodes: list[NodeSchema]
+    edges: list[EdgeSchema]
 
 class InMemoryCache:
     """Fallback in-memory cache (TTL-aware, size-bounded) used when Redis is unavailable."""
@@ -73,6 +116,72 @@ class InMemoryCache:
             'value': value,
             'expires_at': time.monotonic() + time_sec
         }
+
+# ── Request Schema ────────────────────────────────────────────────────────────
+
+class PromptRequest(BaseModel):
+    prompt: str
+
+# ── Helper: Extract JSON from LLM output ─────────────────────────────────────
+
+def extract_json_block(text: str) -> str:
+    """
+    Gemini sometimes wraps JSON in markdown code fences like:
+```json
+      { "nodes": [...], "edges": [...] }
+```
+    This function strips those fences and returns the raw JSON string.
+    """
+    # Remove ```json ... ``` or ``` ... ``` code fences
+    code_fence_pattern = r"```(?:json)?\s*([\s\S]*?)```"
+    match = re.search(code_fence_pattern, text)
+    if match:
+        return match.group(1).strip()
+
+    # If no code fence found, try to extract a raw JSON object directly
+    # (find the first { and last } in the response)
+    start = text.find("{")
+    end = text.rfind("}")
+    if start != -1 and end != -1:
+        return text[start : end + 1]
+
+    # Return the full text as-is (validation will fail and retry)
+    return text.strip()
+
+# ── Helper: Build Gemini prompts ──────────────────────────────────────────────
+
+def build_normal_prompt(user_prompt: str) -> str:
+    return f"""You are a diagram generation assistant. Convert the following description into a JSON diagram.
+
+User request: {user_prompt}
+
+Return ONLY a valid JSON object in this exact format — no explanation, no markdown, no extra text:
+{{
+  "nodes": [
+    {{"id": "1", "data": {{"label": "Node Label"}}, "position": {{"x": 0, "y": 0}}, "type": "default"}}
+  ],
+  "edges": [
+    {{"id": "e1", "source": "1", "target": "2", "label": "optional", "type": "default"}}
+  ]
+}}
+
+Make sure every edge source and target references a valid node id.
+"""
+
+def build_strict_prompt(user_prompt: str) -> str:
+    """Used for the automatic retry — stricter instruction to return ONLY JSON."""
+    return f"""IMPORTANT: You MUST return ONLY a raw JSON object. No markdown. No explanation. No code fences. Nothing before or after the JSON.
+
+Convert this to a diagram: {user_prompt}
+
+The JSON MUST match this exact structure:
+{{
+  "nodes": [{{ "id": "string", "data": {{ "label": "string" }}, "position": {{ "x": 0, "y": 0 }}, "type": "default" }}],
+  "edges": [{{ "id": "string", "source": "string", "target": "string", "label": "string", "type": "default" }}]
+}}
+
+Start your response with {{ and end with }}. Nothing else.
+"""
 
 def _build_redis_client():
     """Attempt to connect to Redis; return the client or None on failure."""
@@ -565,3 +674,69 @@ async def websocket_endpoint(websocket: WebSocket):
                         })
                     except Exception as e:
                         logger.debug("Failed to send ROOM_USERS (cleanup) to client in room %s: %s", room_id, e)
+
+@app.post("/api/generate")
+async def generate_diagram(req: PromptRequest):
+    """
+    Generate a diagram from a natural-language prompt.
+
+    Flow:
+    1. Call Gemini with a structured prompt
+    2. Extract JSON from the response (strip markdown fences if present)
+    3. Validate against DiagramResponse schema using Pydantic
+    4. If validation fails → ONE automatic retry with a stricter prompt
+    5. If retry also fails → return HTTP 422 with a user-friendly message
+    """
+
+    # ── Attempt 1: normal prompt ───────────────────────────────────────────
+    try:
+        response = model.generate_content(build_normal_prompt(req.prompt))
+        raw_text = response.text
+        json_str = extract_json_block(raw_text)
+        parsed = DiagramResponse.model_validate_json(json_str)
+        return parsed.model_dump()
+
+    except (ValidationError, json.JSONDecodeError, ValueError) as first_error:
+        print(f"[VISUALAIZE] First attempt failed: {first_error}")
+        print(f"[VISUALAIZE] Raw Gemini output (first attempt):\n{raw_text[:500]}")
+
+        # ── Attempt 2: strict retry prompt ────────────────────────────────
+        try:
+            retry_response = model.generate_content(build_strict_prompt(req.prompt))
+            retry_text = retry_response.text
+            json_str_retry = extract_json_block(retry_text)
+            parsed_retry = DiagramResponse.model_validate_json(json_str_retry)
+            print("[VISUALAIZE] Retry succeeded.")
+            return parsed_retry.model_dump()
+
+        except (ValidationError, json.JSONDecodeError, ValueError) as retry_error:
+            print(f"[VISUALAIZE] Retry also failed: {retry_error}")
+            print(f"[VISUALAIZE] Raw Gemini output (retry):\n{retry_text[:500]}")
+
+            # Both attempts failed — return a structured, user-friendly error
+            raise HTTPException(
+                status_code=422,
+                detail={
+                    "error": "INVALID_DIAGRAM_STRUCTURE",
+                    "message": (
+                        "Gemini returned an invalid diagram structure after two attempts. "
+                        "Please try rephrasing your prompt — simpler descriptions tend to work better."
+                    ),
+                    "suggestion": "Try: 'A simple flowchart with Start → Process → End'",
+                },
+            )
+
+    except Exception as unexpected:
+        # Catch unexpected errors (network issues, Gemini API errors, etc.)
+        print(f"[VISUALAIZE] Unexpected error: {unexpected}")
+        raise HTTPException(
+            status_code=500,
+            detail={
+                "error": "GENERATION_FAILED",
+                "message": "An unexpected error occurred. Please check your API key and try again.",
+            },
+        )
+
+@app.get("/api/health")
+def health():
+    return {"status": "ok", "model": "gemini-2.5-flash"}
