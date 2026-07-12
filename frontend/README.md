@@ -62,3 +62,21 @@ ReactFlow MiniMap and Controls components are customized to match the VisualAIze
 ---
 
 If you'd like, I can also merge this content into the root README or expand the frontend README with architecture diagrams and examples.
+
+
+### ⚠️ "Gemini returned an invalid diagram structure"
+
+**What happened:** Gemini sometimes returns text instead of valid JSON, 
+or returns JSON with a different schema. VISUALAIZE automatically retries 
+once with a stricter prompt. If the retry also fails, this error is shown.
+
+**How to fix:**
+- **Simplify your prompt** — use concrete, direct descriptions:
+  - ✅ "A flowchart: Start → Login Check → If valid, go to Dashboard; if not, go to Error"
+  - ❌ "Make me a comprehensive flowchart of my entire app" (too vague)
+- **Use shorter prompts** — Gemini is more reliable with shorter, focused descriptions
+- **Try a diagram template** — click "Start from Template" to begin with a pre-built skeleton
+  and then describe modifications
+
+**If this happens consistently:** Check the backend terminal for the raw Gemini output 
+(`[VISUALAIZE] Raw Gemini output`) to see what Gemini actually returned.
