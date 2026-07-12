@@ -630,7 +630,8 @@ async def regenerate_code(request: Request, payload: CodeRequest):
             f"Convert the following to {payload.language}. Return ONLY the code:\n{payload.prompt}",
             use_json=False
         )
-        clean_code = response_text.replace("```", "")
+        clean_code = _RE_FENCE_OPEN.sub("", response_text)
+        clean_code = _RE_FENCE_CLOSE.sub("", clean_code)
         return {"code_snippet": clean_code, "code_explanation": f"Converted to {payload.language}"}
     except HTTPException:
         raise
