@@ -4,8 +4,9 @@ import sys
 import re
 import time
 import hashlib
+import hmac
 import logging
-from fastapi import FastAPI, HTTPException, Request, WebSocket, WebSocketDisconnect
+from fastapi import Depends, FastAPI, Header, HTTPException, Request, WebSocket, WebSocketDisconnect
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, ValidationError
 from fastapi.middleware.cors import CORSMiddleware
@@ -213,6 +214,34 @@ def _build_redis_client():
 _redis_client = _build_redis_client()
 cache = _redis_client if _redis_client is not None else InMemoryCache()
 
+# --- INTERNAL AUTH CONFIG ---
+# Shared-secret header required to call sensitive AI-generation endpoints.
+# The frontend is the only intended caller; this prevents unauthenticated
+# third parties from discovering the backend URL and driving up the Gemini
+# bill for free (see Issue: Security - /api/generate has no auth check).
+INTERNAL_API_SECRET = os.getenv("INTERNAL_API_SECRET", "")
+if not INTERNAL_API_SECRET:
+    logger.warning(
+        "⚠️ INTERNAL_API_SECRET is not set. The /generate endpoint will reject "
+        "all requests until this is configured. Set INTERNAL_API_SECRET in "
+        "your environment to a long random value shared with the frontend."
+    )
+
+async def verify_internal(x_internal_secret: str = Header(default="")) -> None:
+    """FastAPI dependency gating sensitive endpoints behind a shared secret.
+
+    Raises:
+        HTTPException 503: INTERNAL_API_SECRET is not configured server-side.
+        HTTPException 403: The provided X-Internal-Secret header is missing or wrong.
+    """
+    if not INTERNAL_API_SECRET:
+        raise HTTPException(
+            status_code=503,
+            detail="INTERNAL_AUTH_NOT_CONFIGURED: Server is missing INTERNAL_API_SECRET.",
+        )
+    if not x_internal_secret or not hmac.compare_digest(x_internal_secret, INTERNAL_API_SECRET):
+        raise HTTPException(status_code=403, detail="Forbidden")
+
 # --- RATE LIMITER CONFIG ---
 if _redis_client is not None:
     # Use the same backend that the cache is using
@@ -348,9 +377,23 @@ app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 
 
+# Restrict cross-origin calls to the known frontend deployment(s).
+# ALLOWED_ORIGINS is a comma-separated list; falls back to localhost dev
+# origins if unset so local development keeps working out of the box.
+_allowed_origins_env = os.getenv("ALLOWED_ORIGINS", "")
+if _allowed_origins_env:
+    ALLOWED_ORIGINS = [o.strip() for o in _allowed_origins_env.split(",") if o.strip()]
+else:
+    ALLOWED_ORIGINS = ["http://localhost:3000", "http://127.0.0.1:3000"]
+    logger.warning(
+        "⚠️ ALLOWED_ORIGINS is not set. Falling back to localhost dev origins only: %s. "
+        "Set ALLOWED_ORIGINS in production to your deployed frontend URL.",
+        ALLOWED_ORIGINS,
+    )
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=ALLOWED_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -481,7 +524,7 @@ All backslashes in code_snippet or strings MUST be properly double-escaped (e.g.
 
 _GENERIC_ERROR = "An unexpected error occurred. Please try again."
 
-@app.post("/generate")
+@app.post("/generate", dependencies=[Depends(verify_internal)])
 @limiter.limit("10/minute")
 async def generate_graph(request: Request, payload: GraphRequest):
     """
