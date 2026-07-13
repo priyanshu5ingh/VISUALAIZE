@@ -4,6 +4,10 @@ import HistoryPanel from './HistoryPanel';
 import { toast } from "sonner";
 import { saveToHistory, getHistory, deleteFromHistory, SavedDiagram } from '../utils/storage';
 
+import { MyDiagramsPanel } from "./MyDiagramsPanel";
+import { saveDiagram } from "../utils/diagramStorage";
+import type { SavedDiagram } from "../utils/diagramStorage";
+
 import { toPng } from 'html-to-image';
 import { getLayoutedElements } from '../utils/layout';
 import {
@@ -11,8 +15,9 @@ import {
   Activity, BookOpen, PlayCircle, Layers, Code, Copy, Check, Zap,
   Globe, Mic, Download, ChevronDown, MessageSquare, Send, Paperclip,
   PanelRightClose, PanelRightOpen, AlertTriangle, ArrowRight, X, RefreshCw,
-  Maximize2, Minimize2, ZoomIn, ZoomOut, Maximize, Lock, Unlock, History, Hand, MousePointer2, Trash2
-} from 'lucide-react';
+  Maximize2, Minimize2, ZoomIn, ZoomOut, Maximize, Lock, Unlock,
+  History, Eye, EyeOff, HelpCircle, Hand, MousePointer2,Trash2
+} from "lucide-react";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import ReactFlow, {
   applyEdgeChanges, applyNodeChanges,
@@ -71,7 +76,14 @@ interface WindowWithSpeech extends Window {
   webkitSpeechRecognition: new () => WebkitSpeechRecognition;
 }
 
+// Issue #292: track whether the sidebar is open + trigger re-renders after save
+const [showMyDiagrams, setShowMyDiagrams] = useState(false);
+const [diagramsRefreshKey, setDiagramsRefreshKey] = useState(0);
+
 const BACKEND_URL = "https://visualaize-backend.onrender.com";
+// Shared secret sent with requests to protected backend endpoints (e.g. /generate).
+// Must match INTERNAL_API_SECRET configured on the backend.
+const INTERNAL_API_SECRET = process.env.NEXT_PUBLIC_INTERNAL_SECRET ?? "";
 
 const glassControlsStyle = `
   .react-flow__panel .react-flow__controls {
@@ -258,6 +270,8 @@ const ZeroState = ({ onSelect }: { onSelect: (text: string) => void }) => {
 function EditorContent({ onBack }: EditorProps) {
   const [nodes, setNodes] = useState<Node[]>([]);
   const [edges, setEdges] = useState<Edge[]>([]);
+  const [showEdgeLabels, setShowEdgeLabels] = useState(true);
+
   const [viewport, setViewport] = useState({ x: 0, y: 0, zoom: 1 });
   const [prompt, setPrompt] = useState('');
   const submitForm = () => {
@@ -317,6 +331,38 @@ function EditorContent({ onBack }: EditorProps) {
     },
     []
   );
+
+  // Save current diagram to localStorage
+const handleSaveDiagram = () => {
+  if (nodes.length === 0) {
+    setSystemLog((prev) => [
+      ...prev,
+      "⚠️ Nothing to save — generate a diagram first.",
+    ]);
+    return;
+  }
+  // 'prompt' is whatever state variable holds the current prompt text
+  // Check your GraphEditor.tsx for the exact name (probably 'prompt' or 'inputValue')
+  saveDiagram(prompt, nodes, edges);
+  setDiagramsRefreshKey((k) => k + 1); // Refresh the sidebar list
+  setSystemLog((prev) => [
+    ...prev,
+    `✅ Diagram saved to "My Diagrams" (${nodes.length} nodes)`,
+  ]);
+};
+
+  // Restore a saved diagram from the sidebar
+  const handleLoadSavedDiagram = (diagram: SavedDiagram) => {
+    setNodes(diagram.nodes);
+    setEdges(diagram.edges);
+    // Update the prompt input to show what this diagram was for
+    setPrompt(diagram.prompt);  // adjust to your actual setter name
+    setShowMyDiagrams(false);    // close the sidebar
+    setSystemLog((prev) => [
+      ...prev,
+      `📂 Loaded saved diagram: "${diagram.prompt.slice(0, 40)}…"`,
+    ]);
+  };
 
   const handleColorSelect = useCallback((color: string) => {
     setNodes((nds) =>
@@ -431,7 +477,10 @@ function EditorContent({ onBack }: EditorProps) {
     try {
       const res = await fetch(`${BACKEND_URL}/generate`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Internal-Secret': INTERNAL_API_SECRET,
+        },
         body: JSON.stringify({ prompt: text }),
       });
 
@@ -491,7 +540,7 @@ function EditorContent({ onBack }: EditorProps) {
         id: `e-${i}`,
         source: e.source,
         target: e.target,
-        label: e.label,
+        label: showEdgeLabels ? e.label : '',
         type: 'smoothstep',
         markerEnd: {
           type: MarkerType.ArrowClosed,
@@ -755,10 +804,15 @@ function EditorContent({ onBack }: EditorProps) {
   }, [visibleNodes]);
 
   const filteredEdges = useMemo(() => {
-    return edges.filter(
-      (e) => visibleNodeIds.has(e.source) && visibleNodeIds.has(e.target)
-    );
-  }, [edges, visibleNodeIds]);
+    return edges
+      .filter(
+        (e) => visibleNodeIds.has(e.source) && visibleNodeIds.has(e.target)
+      )
+      .map((e) => ({
+        ...e,
+        label: showEdgeLabels ? e.label : '',
+      }));
+  }, [edges, visibleNodeIds, showEdgeLabels]);
 
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
@@ -890,30 +944,47 @@ function EditorContent({ onBack }: EditorProps) {
           </button>
 
           <div className="flex gap-4 pointer-events-auto">
-             {/* --- ADDED HISTORY BUTTON HERE --- */}
-             <button 
-                onClick={() => setHistoryOpen(true)}
+            <button 
+              onClick={() => setHistoryOpen(true)}
+              className="focus-ring flex items-center gap-2 px-3 py-1 rounded-full bg-slate-800/80 backdrop-blur-md border border-white/10 text-xs text-slate-300 hover:bg-blue-600 hover:text-white transition-all shadow-lg"
+            >
+              <History size={14} /> HISTORY
+            </button>
+
+            <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-slate-900/60 backdrop-blur-md border border-white/10 text-xs font-mono text-emerald-400 shadow-lg">
+              <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"/> ONLINE
+            </div>
+
+            {/* --- NEW: Save button --- */}
+            <button
+              onClick={handleSaveDiagram}
+              className="focus-ring flex items-center gap-2 px-3 py-1 rounded-full bg-slate-800/80 backdrop-blur-md border border-white/10 text-xs text-slate-300 hover:bg-emerald-600 hover:text-white transition-all shadow-lg disabled:opacity-40 disabled:cursor-not-allowed"
+              disabled={nodes.length === 0}
+              title="Save current diagram to My Diagrams"
+            >
+              💾 Save
+            </button>
+
+            {/* --- NEW: My Diagrams toggle button --- */}
+            <button
+              onClick={() => setShowMyDiagrams(prev => !prev)}
+              className="focus-ring flex items-center gap-2 px-3 py-1 rounded-full bg-slate-800/80 backdrop-blur-md border border-white/10 text-xs text-slate-300 hover:bg-indigo-600 hover:text-white transition-all shadow-lg"
+              title="Open My Diagrams panel"
+            >
+              📂 My Diagrams
+            </button>
+
+            {graphData && (
+              <button
+                onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+                aria-label={isSidebarOpen ? 'Close analysis panel' : 'Open analysis panel'}
+                aria-expanded={isSidebarOpen}
                 className="focus-ring flex items-center gap-2 px-3 py-1 rounded-full bg-slate-800/80 backdrop-blur-md border border-white/10 text-xs text-slate-300 hover:bg-blue-600 hover:text-white transition-all shadow-lg"
-             >
-                <History size={14} /> HISTORY
-             </button>
-             {/* ------------------------------- */}
-
-             <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-slate-900/60 backdrop-blur-md border border-white/10 text-xs font-mono text-emerald-400 shadow-lg">
-                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"/> ONLINE
-             </div>
-
-             {graphData && (
-                 <button
-                    onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-                    aria-label={isSidebarOpen ? 'Close analysis panel' : 'Open analysis panel'}
-                    aria-expanded={isSidebarOpen}
-                    className="focus-ring flex items-center gap-2 px-3 py-1 rounded-full bg-slate-800/80 backdrop-blur-md border border-white/10 text-xs text-slate-300 hover:bg-blue-600 hover:text-white transition-all shadow-lg"
-                 >
-                    {isSidebarOpen ? <PanelRightClose size={14} aria-hidden="true" /> : <PanelRightOpen size={14} aria-hidden="true" />}
-                    {isSidebarOpen ? 'CLOSE PANEL' : 'OPEN PANEL'}
-                 </button>
-             )}
+              >
+                {isSidebarOpen ? <PanelRightClose size={14} aria-hidden="true" /> : <PanelRightOpen size={14} aria-hidden="true" />}
+                {isSidebarOpen ? 'CLOSE PANEL' : 'OPEN PANEL'}
+              </button>
+            )}
           </div>
         </div>
         )}
@@ -1018,15 +1089,27 @@ function EditorContent({ onBack }: EditorProps) {
                     >
                       <Lock size={14} />
                     </ControlButton>
-                    {/* 🗑️ CLEAR ALL BUTTON - CONTROLS PANEL */}
                     <ControlButton
-                      onClick={handleClearAll}
-                      title="Clear All"
-                      aria-label="Clear all nodes and edges"
-                      className="hover:bg-red-500/20 transition-colors"
-                    >
-                      <Trash2 size={14} className="text-red-400 hover:text-red-300" />
-                    </ControlButton>
+  onClick={() => setShowEdgeLabels(prev => !prev)}
+  title="Toggle Edge Labels"
+  aria-label="Toggle edge labels"
+>
+  {showEdgeLabels ? (
+    <Eye size={14} />
+  ) : (
+    <EyeOff size={14} />
+  )}
+</ControlButton>
+
+<ControlButton
+  onClick={handleClearAll}
+  title="Clear All"
+  aria-label="Clear all nodes and edges"
+  className="hover:bg-red-500/20 transition-colors"
+>
+  <Trash2 size={14} className="text-red-400 hover:text-red-300" />
+</ControlButton>
+            
                   </Controls>
                 )}
 

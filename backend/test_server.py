@@ -16,10 +16,15 @@ mock_genai = MagicMock()
 sys.modules["google.generativeai"] = mock_genai
 
 import main
-from main import app, ChatRequest, CodeRequest, GraphRequest
+from main import app, ChatRequest, CodeRequest, GraphRequest, verify_internal
 
 # Create the test client
 app.state.limiter.enabled = False
+
+# Existing functional tests below don't exercise auth — bypass the shared-secret
+# dependency here so they keep testing behavior, not the auth layer.
+# Auth itself is covered explicitly by the test_internal_auth_* tests further down.
+app.dependency_overrides[verify_internal] = lambda: None
 client = TestClient(app)
 
 
@@ -174,3 +179,82 @@ def test_generate_no_api_key_returns_503():
         assert response.status_code == 503
     finally:
         main.GENAI_KEY = original_key
+
+
+# --- INTERNAL AUTH TESTS ---
+# These temporarily remove the verify_internal override (shared across all
+# TestClient instances, since they wrap the same `app`) so the real auth
+# logic runs, then restore the override so later tests keep bypassing auth.
+
+import contextlib
+
+
+@contextlib.contextmanager
+def _real_auth_enabled():
+    app.dependency_overrides.pop(verify_internal, None)
+    try:
+        yield
+    finally:
+        app.dependency_overrides[verify_internal] = lambda: None
+
+
+def test_internal_auth_rejects_missing_header():
+    """POST /generate without X-Internal-Secret must return 403 (once configured)."""
+    original_secret = main.INTERNAL_API_SECRET
+    try:
+        main.INTERNAL_API_SECRET = "test-secret-value"
+        with _real_auth_enabled():
+            response = client.post("/generate", json={"prompt": "test"})
+        assert response.status_code == 403
+    finally:
+        main.INTERNAL_API_SECRET = original_secret
+
+
+def test_internal_auth_rejects_wrong_secret():
+    """POST /generate with an incorrect X-Internal-Secret must return 403."""
+    original_secret = main.INTERNAL_API_SECRET
+    try:
+        main.INTERNAL_API_SECRET = "test-secret-value"
+        with _real_auth_enabled():
+            response = client.post(
+                "/generate",
+                json={"prompt": "test"},
+                headers={"X-Internal-Secret": "wrong-value"},
+            )
+        assert response.status_code == 403
+    finally:
+        main.INTERNAL_API_SECRET = original_secret
+
+
+@patch.object(main, "get_smart_response")
+def test_internal_auth_accepts_correct_secret(mock_ai):
+    """POST /generate with the correct X-Internal-Secret must be allowed through."""
+    mock_ai.return_value = json.dumps(MOCK_GRAPH)
+    original_secret = main.INTERNAL_API_SECRET
+    try:
+        main.INTERNAL_API_SECRET = "test-secret-value"
+        with patch("main.GENAI_KEY", "mock_key_for_testing"), _real_auth_enabled():
+            response = client.post(
+                "/generate",
+                json={"prompt": "test"},
+                headers={"X-Internal-Secret": "test-secret-value"},
+            )
+        assert response.status_code == 200
+    finally:
+        main.INTERNAL_API_SECRET = original_secret
+
+
+def test_internal_auth_returns_503_when_not_configured():
+    """POST /generate must return 503 if INTERNAL_API_SECRET is unset server-side."""
+    original_secret = main.INTERNAL_API_SECRET
+    try:
+        main.INTERNAL_API_SECRET = ""
+        with _real_auth_enabled():
+            response = client.post(
+                "/generate",
+                json={"prompt": "test"},
+                headers={"X-Internal-Secret": "anything"},
+            )
+        assert response.status_code == 503
+    finally:
+        main.INTERNAL_API_SECRET = original_secret

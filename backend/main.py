@@ -4,10 +4,11 @@ import sys
 import re
 import time
 import hashlib
+import hmac
 import logging
-from fastapi import FastAPI, HTTPException, Request, WebSocket, WebSocketDisconnect
+from fastapi import Depends, FastAPI, Header, HTTPException, Request, WebSocket, WebSocketDisconnect
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, ValidationError
 from fastapi.middleware.cors import CORSMiddleware
 import google.generativeai as genai
 from google.api_core import exceptions as google_exceptions
@@ -16,6 +17,8 @@ import redis
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
+from collections import OrderedDict
+from typing import Optional
 
 room_users = {}
 
@@ -25,15 +28,57 @@ load_dotenv()
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger(__name__)
 
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+if not GEMINI_API_KEY:
+    raise RuntimeError("GEMINI_API_KEY environment variable is not set.")
+
+genai.configure(api_key=GEMINI_API_KEY)
+model = genai.GenerativeModel("gemini-2.5-flash")  # adjust to your actual model name
+
+# ── FastAPI app ───────────────────────────────────────────────────────────────
+app = FastAPI(title="VISUALAIZE API", version="1.0.0")
+
+# Keep your existing CORS settings — don't change this section if it's already configured
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],      # tighten in production
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
 # --- REDIS CONFIG & CONNECTIVITY ---
 REDIS_HOST = os.getenv("REDIS_HOST", "localhost")
 REDIS_PORT = int(os.getenv("REDIS_PORT", 6379))
 REDIS_URL = os.getenv("REDIS_URL", "")
 
+
+class NodeData(BaseModel):
+    label: str
+
+class NodeSchema(BaseModel):
+    id: str
+    data: NodeData
+    position: Optional[dict] = {"x": 0, "y": 0}
+    type: Optional[str] = "default"
+
+class EdgeSchema(BaseModel):
+    id: str
+    source: str
+    target: str
+    label: Optional[str] = ""
+    type: Optional[str] = "default"
+    animated: Optional[bool] = False
+
+class DiagramResponse(BaseModel):
+    nodes: list[NodeSchema]
+    edges: list[EdgeSchema]
+
 class InMemoryCache:
     """Fallback in-memory cache (TTL-aware, size-bounded) used when Redis is unavailable."""
     def __init__(self, max_size: int = 1000):
-        self._cache: dict = {}
+        self._cache: OrderedDict[str, dict] = OrderedDict()
         self._max_size = max_size
         logger.info("💡 Created in-memory fallback prompt cache (max_size=%d).", max_size)
 
@@ -41,22 +86,103 @@ class InMemoryCache:
         entry = self._cache.get(key)
         if entry is None:
             return None
-        if time.monotonic() < entry['expires_at']:
-            return entry['value']
+        
         # Expired — evict lazily
-        del self._cache[key]
-        return None
+        if time.monotonic() >= entry['expires_at']:
+            del self._cache[key]
+            return None
+        
+        # Mark the entry as recently used to maintain LRU ordering.
+        self._cache.move_to_end(key)
+        
+        return entry['value']
 
     def setex(self, key: str, time_sec: int, value: str) -> None:
+
+        # Refresh existing keys so reinsertion updates their LRU position.
+        self._cache.pop(key, None)
+
         if len(self._cache) >= self._max_size:
-            # Evict oldest 20% to avoid constant full-clears
+            # Evict the least recently used 20% to avoid constant full-clears.
             evict_count = max(1, self._max_size // 5)
-            for k in list(self._cache.keys())[:evict_count]:
-                del self._cache[k]
+            
+            for _ in range(evict_count):
+                if not self._cache:
+                    break
+
+                # Evict the least recently used entries while preserving batch eviction.
+                self._cache.popitem(last=False)
+
         self._cache[key] = {
             'value': value,
             'expires_at': time.monotonic() + time_sec
         }
+
+# ── Request Schema ────────────────────────────────────────────────────────────
+
+class PromptRequest(BaseModel):
+    prompt: str
+
+# ── Helper: Extract JSON from LLM output ─────────────────────────────────────
+
+def extract_json_block(text: str) -> str:
+    """
+    Gemini sometimes wraps JSON in markdown code fences like:
+```json
+      { "nodes": [...], "edges": [...] }
+```
+    This function strips those fences and returns the raw JSON string.
+    """
+    # Remove ```json ... ``` or ``` ... ``` code fences
+    code_fence_pattern = r"```(?:json)?\s*([\s\S]*?)```"
+    match = re.search(code_fence_pattern, text)
+    if match:
+        return match.group(1).strip()
+
+    # If no code fence found, try to extract a raw JSON object directly
+    # (find the first { and last } in the response)
+    start = text.find("{")
+    end = text.rfind("}")
+    if start != -1 and end != -1:
+        return text[start : end + 1]
+
+    # Return the full text as-is (validation will fail and retry)
+    return text.strip()
+
+# ── Helper: Build Gemini prompts ──────────────────────────────────────────────
+
+def build_normal_prompt(user_prompt: str) -> str:
+    return f"""You are a diagram generation assistant. Convert the following description into a JSON diagram.
+
+User request: {user_prompt}
+
+Return ONLY a valid JSON object in this exact format — no explanation, no markdown, no extra text:
+{{
+  "nodes": [
+    {{"id": "1", "data": {{"label": "Node Label"}}, "position": {{"x": 0, "y": 0}}, "type": "default"}}
+  ],
+  "edges": [
+    {{"id": "e1", "source": "1", "target": "2", "label": "optional", "type": "default"}}
+  ]
+}}
+
+Make sure every edge source and target references a valid node id.
+"""
+
+def build_strict_prompt(user_prompt: str) -> str:
+    """Used for the automatic retry — stricter instruction to return ONLY JSON."""
+    return f"""IMPORTANT: You MUST return ONLY a raw JSON object. No markdown. No explanation. No code fences. Nothing before or after the JSON.
+
+Convert this to a diagram: {user_prompt}
+
+The JSON MUST match this exact structure:
+{{
+  "nodes": [{{ "id": "string", "data": {{ "label": "string" }}, "position": {{ "x": 0, "y": 0 }}, "type": "default" }}],
+  "edges": [{{ "id": "string", "source": "string", "target": "string", "label": "string", "type": "default" }}]
+}}
+
+Start your response with {{ and end with }}. Nothing else.
+"""
 
 def _build_redis_client():
     """Attempt to connect to Redis; return the client or None on failure."""
@@ -87,6 +213,34 @@ def _build_redis_client():
 # Initialize cache — Redis preferred, InMemoryCache as safe fallback
 _redis_client = _build_redis_client()
 cache = _redis_client if _redis_client is not None else InMemoryCache()
+
+# --- INTERNAL AUTH CONFIG ---
+# Shared-secret header required to call sensitive AI-generation endpoints.
+# The frontend is the only intended caller; this prevents unauthenticated
+# third parties from discovering the backend URL and driving up the Gemini
+# bill for free (see Issue: Security - /api/generate has no auth check).
+INTERNAL_API_SECRET = os.getenv("INTERNAL_API_SECRET", "")
+if not INTERNAL_API_SECRET:
+    logger.warning(
+        "⚠️ INTERNAL_API_SECRET is not set. The /generate endpoint will reject "
+        "all requests until this is configured. Set INTERNAL_API_SECRET in "
+        "your environment to a long random value shared with the frontend."
+    )
+
+async def verify_internal(x_internal_secret: str = Header(default="")) -> None:
+    """FastAPI dependency gating sensitive endpoints behind a shared secret.
+
+    Raises:
+        HTTPException 503: INTERNAL_API_SECRET is not configured server-side.
+        HTTPException 403: The provided X-Internal-Secret header is missing or wrong.
+    """
+    if not INTERNAL_API_SECRET:
+        raise HTTPException(
+            status_code=503,
+            detail="INTERNAL_AUTH_NOT_CONFIGURED: Server is missing INTERNAL_API_SECRET.",
+        )
+    if not x_internal_secret or not hmac.compare_digest(x_internal_secret, INTERNAL_API_SECRET):
+        raise HTTPException(status_code=403, detail="Forbidden")
 
 # --- RATE LIMITER CONFIG ---
 if _redis_client is not None:
@@ -223,9 +377,23 @@ app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 
 
+# Restrict cross-origin calls to the known frontend deployment(s).
+# ALLOWED_ORIGINS is a comma-separated list; falls back to localhost dev
+# origins if unset so local development keeps working out of the box.
+_allowed_origins_env = os.getenv("ALLOWED_ORIGINS", "")
+if _allowed_origins_env:
+    ALLOWED_ORIGINS = [o.strip() for o in _allowed_origins_env.split(",") if o.strip()]
+else:
+    ALLOWED_ORIGINS = ["http://localhost:3000", "http://127.0.0.1:3000"]
+    logger.warning(
+        "⚠️ ALLOWED_ORIGINS is not set. Falling back to localhost dev origins only: %s. "
+        "Set ALLOWED_ORIGINS in production to your deployed frontend URL.",
+        ALLOWED_ORIGINS,
+    )
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=ALLOWED_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -356,7 +524,7 @@ All backslashes in code_snippet or strings MUST be properly double-escaped (e.g.
 
 _GENERIC_ERROR = "An unexpected error occurred. Please try again."
 
-@app.post("/generate")
+@app.post("/generate", dependencies=[Depends(verify_internal)])
 @limiter.limit("10/minute")
 async def generate_graph(request: Request, payload: GraphRequest):
     """
@@ -462,7 +630,8 @@ async def regenerate_code(request: Request, payload: CodeRequest):
             f"Convert the following to {payload.language}. Return ONLY the code:\n{payload.prompt}",
             use_json=False
         )
-        clean_code = response_text.replace("```", "")
+        clean_code = _RE_FENCE_OPEN.sub("", response_text)
+        clean_code = _RE_FENCE_CLOSE.sub("", clean_code)
         return {"code_snippet": clean_code, "code_explanation": f"Converted to {payload.language}"}
     except HTTPException:
         raise
@@ -549,3 +718,69 @@ async def websocket_endpoint(websocket: WebSocket):
                         })
                     except Exception as e:
                         logger.debug("Failed to send ROOM_USERS (cleanup) to client in room %s: %s", room_id, e)
+
+@app.post("/api/generate")
+async def generate_diagram(req: PromptRequest):
+    """
+    Generate a diagram from a natural-language prompt.
+
+    Flow:
+    1. Call Gemini with a structured prompt
+    2. Extract JSON from the response (strip markdown fences if present)
+    3. Validate against DiagramResponse schema using Pydantic
+    4. If validation fails → ONE automatic retry with a stricter prompt
+    5. If retry also fails → return HTTP 422 with a user-friendly message
+    """
+
+    # ── Attempt 1: normal prompt ───────────────────────────────────────────
+    try:
+        response = model.generate_content(build_normal_prompt(req.prompt))
+        raw_text = response.text
+        json_str = extract_json_block(raw_text)
+        parsed = DiagramResponse.model_validate_json(json_str)
+        return parsed.model_dump()
+
+    except (ValidationError, json.JSONDecodeError, ValueError) as first_error:
+        print(f"[VISUALAIZE] First attempt failed: {first_error}")
+        print(f"[VISUALAIZE] Raw Gemini output (first attempt):\n{raw_text[:500]}")
+
+        # ── Attempt 2: strict retry prompt ────────────────────────────────
+        try:
+            retry_response = model.generate_content(build_strict_prompt(req.prompt))
+            retry_text = retry_response.text
+            json_str_retry = extract_json_block(retry_text)
+            parsed_retry = DiagramResponse.model_validate_json(json_str_retry)
+            print("[VISUALAIZE] Retry succeeded.")
+            return parsed_retry.model_dump()
+
+        except (ValidationError, json.JSONDecodeError, ValueError) as retry_error:
+            print(f"[VISUALAIZE] Retry also failed: {retry_error}")
+            print(f"[VISUALAIZE] Raw Gemini output (retry):\n{retry_text[:500]}")
+
+            # Both attempts failed — return a structured, user-friendly error
+            raise HTTPException(
+                status_code=422,
+                detail={
+                    "error": "INVALID_DIAGRAM_STRUCTURE",
+                    "message": (
+                        "Gemini returned an invalid diagram structure after two attempts. "
+                        "Please try rephrasing your prompt — simpler descriptions tend to work better."
+                    ),
+                    "suggestion": "Try: 'A simple flowchart with Start → Process → End'",
+                },
+            )
+
+    except Exception as unexpected:
+        # Catch unexpected errors (network issues, Gemini API errors, etc.)
+        print(f"[VISUALAIZE] Unexpected error: {unexpected}")
+        raise HTTPException(
+            status_code=500,
+            detail={
+                "error": "GENERATION_FAILED",
+                "message": "An unexpected error occurred. Please check your API key and try again.",
+            },
+        )
+
+@app.get("/api/health")
+def health():
+    return {"status": "ok", "model": "gemini-2.5-flash"}
