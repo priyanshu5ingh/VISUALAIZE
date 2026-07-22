@@ -306,6 +306,7 @@ function EditorContent({ onBack }: EditorProps) {
 
   const [cursors, setCursors] = useState<Record<string, { x: number; y: number }>>({});
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [isLocked, setIsLocked] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [savedHistory, setSavedHistory] = useState<SavedDiagram[]>([]);
   const [contextMenu, setContextMenu] = useState<{
@@ -1025,15 +1026,17 @@ const handleSaveDiagram = () => {
         </div>
 
         {/* Focus mode toggle */}
-        <button
-          onClick={() => setIsFullscreen(f => !f)}
-          className="focus-ring absolute top-4 right-4 z-50 pointer-events-auto flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-900/60 backdrop-blur-md border border-white/10 text-xs font-mono text-slate-300 hover:bg-blue-600 hover:text-white hover:border-blue-500/50 transition-all shadow-lg"
-          title={isFullscreen ? 'Exit Focus Mode (Esc)' : 'Focus Mode'}
-          aria-label={isFullscreen ? 'Exit Focus Mode' : 'Enter Focus Mode'}
-        >
-          {isFullscreen ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
-          {isFullscreen ? 'EXIT FOCUS' : 'FOCUS'}
-        </button>
+        {!isLocked && (
+          <button
+            onClick={() => setIsFullscreen(f => !f)}
+            className="focus-ring absolute top-4 right-4 z-50 pointer-events-auto flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-900/60 backdrop-blur-md border border-white/10 text-xs font-mono text-slate-300 hover:bg-blue-600 hover:text-white hover:border-blue-500/50 transition-all shadow-lg"
+            title={isFullscreen ? 'Exit Focus Mode (Esc)' : 'Focus Mode'}
+            aria-label={isFullscreen ? 'Exit Focus Mode' : 'Enter Focus Mode'}
+          >
+            {isFullscreen ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
+            {isFullscreen ? 'EXIT FOCUS' : 'FOCUS'}
+          </button>
+        )}
 
         {/* Empty state: shown when no graph has been generated yet */}
         {nodes.length === 0 && !isGenerating && <EmptyState />}
@@ -1055,9 +1058,16 @@ const handleSaveDiagram = () => {
               onMove={onMove}
               onNodeContextMenu={handleNodeContextMenu}
               minZoom={0.1}
-              panOnDrag={panOnDrag}
-              selectionOnDrag={!panOnDrag}
+              nodesDraggable={!isLocked}
+              nodesConnectable={!isLocked}
+              elementsSelectable={!isLocked}
+              panOnDrag={!isLocked && panOnDrag}
+              selectionOnDrag={!isLocked && !panOnDrag}
               selectionMode={SelectionMode.Partial}
+              panOnScroll={!isLocked}
+              zoomOnScroll={!isLocked}
+              zoomOnPinch={!isLocked}
+              zoomOnDoubleClick={!isLocked}
             >
                 <Background
                     color="#94a3b8"
@@ -1069,49 +1079,53 @@ const handleSaveDiagram = () => {
 
                 {nodes.length > 0 && (
                   <Controls showZoom={false} showFitView={false} showInteractive={false}>
+                    {!isLocked && (
+                      <>
+                        <ControlButton
+                          onClick={() => setPanOnDrag(false)}
+                          title="Select Mode"
+                          aria-label="Select Mode"
+                          style={{ background: !panOnDrag ? 'rgba(99, 102, 241, 0.4)' : 'transparent' }}
+                        >
+                          <MousePointer2 size={14} />
+                        </ControlButton>
+                        <ControlButton
+                          onClick={() => setPanOnDrag(true)}
+                          title="Pan Mode"
+                          aria-label="Pan Mode"
+                          style={{ background: panOnDrag ? 'rgba(99, 102, 241, 0.4)' : 'transparent' }}
+                        >
+                          <Hand size={14} />
+                        </ControlButton>
+                        <ControlButton
+                          onClick={() => zoomIn({ duration: 300 })}
+                          title="Zoom In"
+                          aria-label="Zoom in"
+                        >
+                          <ZoomIn size={14} />
+                        </ControlButton>
+                        <ControlButton
+                          onClick={() => zoomOut({ duration: 300 })}
+                          title="Zoom Out"
+                          aria-label="Zoom out"
+                        >
+                          <ZoomOut size={14} />
+                        </ControlButton>
+                        <ControlButton
+                          onClick={() => fitView({ padding: 0.15, duration: 500 })}
+                          title="Fit View"
+                          aria-label="Fit view"
+                        >
+                          <Maximize size={14} />
+                        </ControlButton>
+                      </>
+                    )}
                     <ControlButton
-                       onClick={() => setPanOnDrag(false)}
-                       title="Select Mode"
-                       aria-label="Select Mode"
-                       style={{ background: !panOnDrag ? 'rgba(99, 102, 241, 0.4)' : 'transparent' }}
-                      >
-                    <MousePointer2 size={14} />
-                    </ControlButton>
-                    <ControlButton
-                      onClick={() => setPanOnDrag(true)}
-                      title="Pan Mode"
-                      aria-label="Pan Mode"
-                      style={{ background: panOnDrag ? 'rgba(99, 102, 241, 0.4)' : 'transparent' }}
-                      >
-                    <Hand size={14} />
-                    </ControlButton>
-                    <ControlButton
-                      onClick={() => zoomIn({ duration: 300 })}
-                      title="Zoom In"
-                      aria-label="Zoom in"
+                      onClick={() => setIsLocked(prev => !prev)}
+                      title={isLocked ? "Unlock Graph" : "Lock Graph"}
+                      aria-label={isLocked ? "Unlock Graph" : "Lock Graph"}
                     >
-                      <ZoomIn size={14} />
-                    </ControlButton>
-                    <ControlButton
-                      onClick={() => zoomOut({ duration: 300 })}
-                      title="Zoom Out"
-                      aria-label="Zoom out"
-                    >
-                      <ZoomOut size={14} />
-                    </ControlButton>
-                    <ControlButton
-                      onClick={() => fitView({ padding: 0.15, duration: 500 })}
-                      title="Fit View"
-                      aria-label="Fit view"
-                    >
-                      <Maximize size={14} />
-                    </ControlButton>
-                    <ControlButton
-                      onClick={() => setNodes(nds => nds.map(n => ({ ...n, draggable: !(n.draggable ?? true) })))}
-                      title="Toggle Interactive (lock/unlock nodes)"
-                      aria-label="Toggle interactive"
-                    >
-                      <Lock size={14} />
+                      {isLocked ? <Lock size={14} /> : <Unlock size={14} />}
                     </ControlButton>
                     <ControlButton
   onClick={() => setShowEdgeLabels(prev => !prev)}
