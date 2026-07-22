@@ -1,6 +1,7 @@
 // frontend/src/components/GraphEditor.tsx
 'use client';
 import HistoryPanel from './HistoryPanel';
+import { toast } from "sonner";
 import { saveToHistory, getHistory, deleteFromHistory, SavedDiagram } from '../utils/storage';
 
 import { MyDiagramsPanel } from "./MyDiagramsPanel";
@@ -725,13 +726,16 @@ const handleSaveDiagram = () => {
       recognition.onerror = () => setIsListening(false);
       recognition.onend = () => setIsListening(false);
       recognition.start();
-    } else { alert("Voice control requires Chrome/Edge."); }
+   } else {
+  toast.error("Voice control requires Chrome or Microsoft Edge.");
+}
   };
-
   const handleExport = () => {
     if (reactFlowWrapper.current === null) return;
     toPng(reactFlowWrapper.current, { backgroundColor: '#020617' }).then((dataUrl) => {
-        const link = document.createElement('a'); link.download = 'visualaize-graph.png'; link.href = dataUrl; link.click();
+        const link = document.createElement('a'); link.download = 'visualaize-graph.png'; link.href = dataUrl; link.click(); toast.success("Graph exported as PNG!");
+        }) .catch(() => {
+      toast.error("Failed to export graph as PNG.");
     });
   };
 
@@ -739,6 +743,7 @@ const handleSaveDiagram = () => {
     if (graphData?.code_snippet) {
       navigator.clipboard.writeText(graphData.code_snippet);
       setCopied(true);
+      toast.success("Code copied to clipboard!");
       if (copyTimeoutRef.current) clearTimeout(copyTimeoutRef.current);
       copyTimeoutRef.current = setTimeout(() => setCopied(false), 2000);
     }
@@ -770,7 +775,7 @@ const handleSaveDiagram = () => {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-
+    toast.success("Code downloaded!");
     URL.revokeObjectURL(url);
   };
 
