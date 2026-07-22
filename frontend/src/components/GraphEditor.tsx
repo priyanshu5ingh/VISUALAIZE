@@ -13,11 +13,11 @@ import { getLayoutedElements } from '../utils/layout';
 import {
   ArrowLeft, Box, GitBranch, Network, Share2, Terminal,
   Activity, BookOpen, PlayCircle, Layers, Code, Copy, Check, Zap,
-  Globe, Mic, Download, ChevronDown, MessageSquare, Send, Paperclip,
+  Globe, Mic, FileCode2, ChevronDown, MessageSquare, Send, Paperclip,
   PanelRightClose, PanelRightOpen, AlertTriangle, ArrowRight, X, RefreshCw,
-  Maximize2, Minimize2, ZoomIn, ZoomOut, Maximize, Lock, Unlock,
-  History, Eye, EyeOff, HelpCircle, Hand, MousePointer2,Trash2
-} from "lucide-react";
+  Maximize2, Minimize2, ZoomIn, ZoomOut, Maximize, Lock, Unlock, History, Eye, EyeOff, HelpCircle, Hand, MousePointer2, Trash2
+} from 'lucide-react';
+
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import ReactFlow, {
   applyEdgeChanges, applyNodeChanges,
@@ -779,6 +779,30 @@ const handleSaveDiagram = () => {
     URL.revokeObjectURL(url);
   };
 
+  const handleDownloadJSON = () => {
+  const graph = {
+    nodes,
+    edges,
+  };
+
+  const blob = new Blob(
+    [JSON.stringify(graph, null, 2)],
+    { type: "application/json" }
+  );
+
+  const url = URL.createObjectURL(blob);
+
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = "visualaize-graph.json";
+
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+
+  URL.revokeObjectURL(url);
+};
+
   const showBackground = nodes.length === 0;
 
   const { x, y, zoom } = getViewport();
@@ -1226,9 +1250,25 @@ const handleSaveDiagram = () => {
                    <div className="flex items-center gap-2 mb-2 text-xs font-bold tracking-widest text-blue-500 uppercase"><Layers size={12} /> Analysis Complete</div>
                    <h2 className="text-xl font-bold text-white leading-tight">{graphData.title}</h2>
                 </div>
-                <button onClick={handleExport} className="focus-ring p-2 text-slate-400 hover:text-white hover:bg-white/10 rounded-lg transition-colors" title="Export as PNG" aria-label="Export graph as PNG">
-                    <Download size={18} />
-                </button>
+                <div className="flex gap-2">
+  <button
+    onClick={handleDownloadJSON}
+    className="focus-ring p-2 text-slate-400 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+    title="Download JSON"
+    aria-label="Download graph as JSON"
+  >
+    <FileCode2 size={18} />
+  </button>
+
+  <button
+    onClick={handleExport}
+    className="focus-ring p-2 text-slate-400 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+    title="Export as PNG"
+    aria-label="Export graph as PNG"
+  >
+    <Download size={18} />
+  </button>
+</div>
             </div>
 
             <div className="flex border-b border-white/10 min-w-[450px]">
