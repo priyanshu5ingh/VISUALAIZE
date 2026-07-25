@@ -690,7 +690,8 @@ function EditorContent({ onBack }: EditorProps) {
   }, []);
 
   useEffect(() => {
-    const socket = new WebSocket("ws://localhost:8000/ws");
+    const wsUrl = BACKEND_URL.replace(/^http/, 'ws') + '/ws';
+    const socket = new WebSocket(wsUrl);
     socketRef.current = socket;
 
     socket.onopen = () => {

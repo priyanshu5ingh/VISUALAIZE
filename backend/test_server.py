@@ -165,12 +165,12 @@ def test_chat_error_does_not_leak_detail(mock_ai):
     assert "Raw internal error" not in body.get("detail", "")
 
 
-def test_generate_no_api_key_returns_503():
-    """Missing GENAI_KEY must return 503, not 500."""
+def test_generate_no_api_key_returns_401():
+    """Missing GENAI_KEY must return 401, not 500."""
     original_key = main.GENAI_KEY
     try:
         main.GENAI_KEY = None
         response = client.post("/generate", json={"prompt": "test"})
-        assert response.status_code == 503
+        assert response.status_code == 401
     finally:
         main.GENAI_KEY = original_key
