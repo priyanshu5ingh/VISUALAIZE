@@ -20,7 +20,7 @@
     "lucide-react": "^1.17.0",
     "maath": "^0.10.8",
     "mini-svg-data-uri": "^1.4.4",
-    "next": "^16.2.7",
+    "next": "^16.2.11",
     "react": "19.2.7",
     "react-dom": "19.2.7",
     "reactflow": "^11.11.4",
