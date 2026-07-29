@@ -79,7 +79,7 @@ export const getLayoutedElements = (nodes: Node[], edges: Edge[]) => {
 
   let activeRowIndex = 0;
   Object.keys(layers).forEach((key) => {
-    const layerIndex = parseInt(key);
+    const layerIndex = parseInt(key, 10);
     const layerNodes = layers[layerIndex];
     
     if (layerNodes.length === 0) return;
