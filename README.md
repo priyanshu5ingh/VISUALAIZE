@@ -132,7 +132,7 @@ VisualAIze/
 
 ---
 
-## 🖼️ Diagrams
+## 🖼️ Architecture Diagrams
 
 Visual diagrams for the architecture and data flow are available in the `docs/` folder.
 
