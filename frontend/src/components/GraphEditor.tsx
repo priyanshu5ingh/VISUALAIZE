@@ -1153,6 +1153,8 @@ const handleSaveDiagram = () => {
 
                 {nodes.length > 0 && (
                     <MiniMap
+                      pannable
+                      zoomable
                       className="!border-white/5"
                       nodeColor={(node) => {
                         const customColor = node.data?.nodeColor;
