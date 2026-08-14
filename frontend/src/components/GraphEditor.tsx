@@ -80,7 +80,7 @@ interface WindowWithSpeech extends Window {
 const [showMyDiagrams, setShowMyDiagrams] = useState(false);
 const [diagramsRefreshKey, setDiagramsRefreshKey] = useState(0);
 
-const BACKEND_URL = "https://visualaize-backend.onrender.com";
+const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || "https://visualaize-backend.onrender.com";
 // Shared secret sent with requests to protected backend endpoints (e.g. /generate).
 // Must match INTERNAL_API_SECRET configured on the backend.
 const INTERNAL_API_SECRET = process.env.NEXT_PUBLIC_INTERNAL_SECRET ?? "";
@@ -854,7 +854,8 @@ const handleSaveDiagram = () => {
   }, []);
 
   useEffect(() => {
-    const socket = new WebSocket("ws://localhost:8000/ws");
+    const wsUrl = `${BACKEND_URL.replace(/\/$/, "").replace(/^http/, "ws")}/ws`;
+    const socket = new WebSocket(wsUrl);
     socketRef.current = socket;
 
     socket.onopen = () => {
